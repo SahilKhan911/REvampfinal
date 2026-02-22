@@ -12,7 +12,7 @@ const config: Config = {
         background: "var(--background)",
         foreground: "var(--foreground)",
         primary: {
-          DEFAULT: "#ea580c", // orange-600
+          DEFAULT: "#2563eb", // blue-600
           foreground: "#ffffff",
         },
         card: {

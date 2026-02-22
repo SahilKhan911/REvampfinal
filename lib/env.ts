@@ -1,6 +1,6 @@
 const requiredEnvs = [
-  'DATABASE_URL',
-  'RESEND_API_KEY',
+  'NEXT_PUBLIC_SUPABASE_URL',
+  'NEXT_PUBLIC_SUPABASE_ANON_KEY',
   'ADMIN_EMAIL',
   'ADMIN_PASSWORD',
   'JWT_SECRET',
@@ -19,11 +19,10 @@ function validateEnv(): Env {
   for (const key of requiredEnvs) {
     const value = process.env[key]
 
-    // Only enforce presence on the server and NOT during build
-    const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build' || !process.env.DATABASE_URL
+    const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build'
 
     if (isServer && !value && !isBuildPhase) {
-      throw new Error(`Missing environment variable: ${key}`)
+      console.warn(`Missing environment variable: ${key}`)
     }
 
     env[key] = value || ''

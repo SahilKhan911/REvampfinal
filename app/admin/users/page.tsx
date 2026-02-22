@@ -59,7 +59,7 @@ export default function UsersPage() {
                   </div>
                 </td>
                 <td className="p-4">
-                  <code className="px-2 py-1 bg-orange-500/10 text-orange-500 rounded text-xs font-bold">
+                  <code className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded text-xs font-bold">
                     {user.referralCode}
                   </code>
                 </td>

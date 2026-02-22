@@ -86,7 +86,7 @@ export default function OrdersPage() {
                   </span>
                 </td>
                 <td className="p-4 capitalize">{order.paymentMethod}</td>
-                <td className="p-4 font-bold text-orange-500">₹{order.amount}</td>
+                <td className="p-4 font-bold text-blue-400">₹{order.amount}</td>
                 <td className="p-4">
                   {order.status === "paid" ? (
                     <span className="flex items-center text-green-500 text-xs font-bold uppercase">

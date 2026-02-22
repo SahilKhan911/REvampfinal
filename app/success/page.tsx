@@ -1,77 +1,58 @@
 "use client"
 
-import { CheckCircle2, Clipboard, Copy, MessageSquare, Share2 } from "lucide-react"
+import { Clock, Mail, ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
 
-export default function SuccessPage() {
-  const [copied, setCopied] = useState(false)
-  const referralLink = "https://opensource.letsrevamp.in?ref=abc123" // Placeholder for now
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(referralLink)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
+export default function PendingPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center bg-black">
-      <div className="flex items-center justify-center w-20 h-20 mb-8 bg-green-500/10 rounded-full">
-        <CheckCircle2 className="w-12 h-12 text-green-500" />
-      </div>
-
-      <h1 className="mb-4 text-4xl font-bold tracking-tight">Payment Successful!</h1>
-      <p className="max-w-md mb-12 text-gray-400">
-        You've successfully secured your spot in the Revamp Workshops. Check your
-        email for confirmation and next steps.
-      </p>
-
-      <div className="grid w-full max-w-2xl grid-cols-1 gap-6 md:grid-cols-2">
-        {/* Community Link */}
-        <div className="p-8 text-left border rounded-2xl border-white/5 bg-gray-950">
-          <MessageSquare className="w-8 h-8 mb-4 text-orange-500" />
-          <h3 className="mb-2 text-xl font-bold">Join Community</h3>
-          <p className="mb-6 text-sm text-gray-400">
-            Join our exclusive WhatsApp group for workshop attendees and
-            mentors.
-          </p>
-          <Link
-            href="https://chat.whatsapp.com/..."
-            className="inline-flex items-center justify-center w-full px-6 py-3 font-semibold transition-colors bg-green-600 rounded-xl hover:bg-green-700"
-          >
-            Join WhatsApp Group
-          </Link>
+      <div className="w-full max-w-md">
+        {/* Animated pending icon */}
+        <div className="flex items-center justify-center w-24 h-24 mx-auto mb-8 bg-yellow-500/10 rounded-full">
+          <Clock className="w-12 h-12 text-yellow-500 animate-pulse" />
         </div>
 
-        {/* Global Referral */}
-        <div className="p-8 text-left border rounded-2xl border-white/5 bg-gray-950">
-          <Share2 className="w-8 h-8 mb-4 text-orange-500" />
-          <h3 className="mb-2 text-xl font-bold">Refer & Grow</h3>
-          <p className="mb-6 text-sm text-gray-400">
-            Share your unique referral link and help your friends join the open
-            source revolution.
-          </p>
-          <div className="flex items-center p-3 mb-2 space-x-2 border rounded-lg bg-black/50 border-white/10">
-            <code className="flex-1 truncate text-xs text-orange-500">
-              {referralLink}
-            </code>
-            <button
-              onClick={copyToClipboard}
-              className="p-2 transition-colors hover:text-orange-500"
-            >
-              {copied ? <Clipboard className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-            </button>
+        <h1 className="mb-3 text-3xl font-bold tracking-tight">
+          Payment Under Verification
+        </h1>
+        <p className="max-w-sm mx-auto mb-8 text-gray-400 text-lg">
+          We've received your payment details. Our team will verify your transaction shortly.
+        </p>
+
+        {/* Status card */}
+        <div className="p-6 mb-8 border rounded-2xl border-white/5 bg-gray-950 text-left">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse" />
+            <span className="text-sm font-semibold text-yellow-500 uppercase tracking-wider">Pending Verification</span>
           </div>
-          <p className="text-[10px] text-gray-500">Click to copy your link</p>
+          <p className="text-sm text-gray-400 leading-relaxed">
+            You'll receive an email notification once your payment is verified and your enrollment is confirmed.
+            This usually takes less than <strong className="text-white">24 hours</strong>.
+          </p>
         </div>
-      </div>
 
-      <Link
-        href="/"
-        className="mt-12 text-sm font-medium text-gray-500 hover:text-white transition-colors"
-      >
-        Back to Home
-      </Link>
+        {/* What's next */}
+        <div className="p-6 mb-8 border rounded-2xl border-white/5 bg-gray-950 text-left">
+          <div className="flex items-center space-x-2 mb-3">
+            <Mail className="w-5 h-5 text-blue-400" />
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300">Check Your Email</h3>
+          </div>
+          <p className="text-sm text-gray-400 leading-relaxed">
+            We've sent a confirmation of your submission to your email.
+            Once verified, you'll get your <strong className="text-white">workshop access</strong>,
+            <strong className="text-white"> WhatsApp group invite</strong>, and your
+            <strong className="text-white"> unique referral code</strong>.
+          </p>
+        </div>
+
+        <Link
+          href="/"
+          className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-white transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Home
+        </Link>
+      </div>
     </div>
   )
 }

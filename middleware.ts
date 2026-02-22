@@ -8,18 +8,12 @@ export function middleware(request: NextRequest) {
   // 1. Referral Capture
   const referralCode = searchParams.get('ref')
   if (referralCode) {
-    // Store referral code in cookie for 7 days
     response.cookies.set('referral_code', referralCode, {
-      maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+      maxAge: 7 * 24 * 60 * 60,
       path: '/',
       httpOnly: true,
       sameSite: 'lax',
     })
-
-    // Note: We don't track the click in the database here because middleware
-    // should be fast and non-blocking. We'll handle click tracking via a 
-    // client-side useEffect or a background API call later if needed,
-    // or just rely on the cookie for the final conversion.
   }
 
   // 2. Admin Route Protection
@@ -30,18 +24,19 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  // 3. User Dashboard Protection
+  if (pathname.startsWith('/dashboard')) {
+    const userToken = request.cookies.get('user_token')?.value
+    if (!userToken) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+  }
+
   return response
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 }

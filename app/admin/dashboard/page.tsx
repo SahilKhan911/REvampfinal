@@ -86,14 +86,14 @@ export default function AdminDashboard() {
           title="Referral Conversions"
           value={stats?.referralSales}
           icon={TrendingUp}
-          color="bg-orange-500/10 text-orange-500"
+          color="bg-blue-500/10 text-blue-400"
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="p-8 border border-white/5 bg-gray-950 rounded-2xl">
           <h3 className="text-xl font-bold mb-6 flex items-center">
-            <Package className="w-5 h-5 mr-3 text-orange-500" />
+            <Package className="w-5 h-5 mr-3 text-blue-400" />
             Sales by Bundle
           </h3>
           <div className="space-y-4">
@@ -109,7 +109,7 @@ export default function AdminDashboard() {
         <div className="p-8 border border-white/5 bg-gray-950 rounded-2xl flex flex-col justify-center items-center text-center">
           <h3 className="text-xl font-bold mb-2">Ready to Manage Orders?</h3>
           <p className="text-gray-400 text-sm mb-8 px-8">Review manual payments, track customer details, and verify transaction IDs.</p>
-          <Link href="/admin/orders" className="inline-flex items-center px-8 py-4 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition-all">
+          <Link href="/admin/orders" className="inline-flex items-center px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all">
             Go to Orders
             <ArrowRight className="w-4 h-4 ml-2" />
           </Link>

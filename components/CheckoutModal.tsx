@@ -21,6 +21,7 @@ export default function CheckoutModal({ bundle, onClose }: CheckoutModalProps) {
     name: "",
     email: "",
     phone: "",
+    password: "",
     transactionId: "",
   })
 
@@ -45,6 +46,7 @@ export default function CheckoutModal({ bundle, onClose }: CheckoutModalProps) {
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
+          password: formData.password,
           transactionId: formData.transactionId,
         }),
       }).then((t) => t.json())
@@ -82,7 +84,7 @@ export default function CheckoutModal({ bundle, onClose }: CheckoutModalProps) {
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="John Doe"
-                  className="w-full px-4 py-3 bg-black border border-white/10 rounded-xl focus:border-orange-500 outline-none transition-colors"
+                  className="w-full px-4 py-3 bg-black border border-white/10 rounded-xl focus:border-blue-500 outline-none transition-colors"
                 />
               </div>
               <div>
@@ -94,7 +96,7 @@ export default function CheckoutModal({ bundle, onClose }: CheckoutModalProps) {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="john@example.com"
-                  className="w-full px-4 py-3 bg-black border border-white/10 rounded-xl focus:border-orange-500 outline-none transition-colors"
+                  className="w-full px-4 py-3 bg-black border border-white/10 rounded-xl focus:border-blue-500 outline-none transition-colors"
                 />
               </div>
               <div>
@@ -106,12 +108,26 @@ export default function CheckoutModal({ bundle, onClose }: CheckoutModalProps) {
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="+91 9988776655"
-                  className="w-full px-4 py-3 bg-black border border-white/10 rounded-xl focus:border-orange-500 outline-none transition-colors"
+                  className="w-full px-4 py-3 bg-black border border-white/10 rounded-xl focus:border-blue-500 outline-none transition-colors"
                 />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-400 uppercase mb-1">Create Password</label>
+                <input
+                  required
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="For your dashboard login"
+                  minLength={6}
+                  className="w-full px-4 py-3 bg-black border border-white/10 rounded-xl focus:border-blue-500 outline-none transition-colors"
+                />
+                <p className="mt-1 text-[11px] text-gray-600">Min 6 characters. You'll use this to log in to your dashboard.</p>
               </div>
               <button
                 type="submit"
-                className="w-full flex items-center justify-center px-6 py-4 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition-all mt-4"
+                className="w-full flex items-center justify-center px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all mt-4"
               >
                 Continue to Payment
                 <ChevronRight className="w-4 h-4 ml-2" />
@@ -125,10 +141,9 @@ export default function CheckoutModal({ bundle, onClose }: CheckoutModalProps) {
               <div className="flex flex-col items-center">
                 <div className="w-48 h-48 bg-white p-2 rounded-xl mb-4">
                   {(() => {
-                    const upiId = process.env.NEXT_PUBLIC_UPI_ID;
+                    const upiId = "skhantis05@okhdfcbank";
                     const amount = Math.round(bundle.eventPrice);
                     const upiUrl = `upi://pay?pa=${upiId}&pn=Revamp&am=${amount}&cu=INR`;
-                    console.log("Generated UPI URL:", upiUrl);
                     return (
                       <img
                         src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`}
@@ -149,7 +164,7 @@ export default function CheckoutModal({ bundle, onClose }: CheckoutModalProps) {
                   value={formData.transactionId}
                   onChange={handleChange}
                   placeholder="12 digit number"
-                  className="w-full px-4 py-3 bg-black border border-white/10 rounded-xl focus:border-orange-500 outline-none transition-colors"
+                  className="w-full px-4 py-3 bg-black border border-white/10 rounded-xl focus:border-blue-500 outline-none transition-colors"
                 />
               </div>
 
@@ -164,7 +179,7 @@ export default function CheckoutModal({ bundle, onClose }: CheckoutModalProps) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-[2] flex items-center justify-center px-6 py-4 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition-all"
+                  className="flex-[2] flex items-center justify-center px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all"
                 >
                   {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : "Submit Details"}
                 </button>
@@ -173,6 +188,6 @@ export default function CheckoutModal({ bundle, onClose }: CheckoutModalProps) {
           )}
         </div>
       </div>
-    </div>
+    </div >
   )
 }

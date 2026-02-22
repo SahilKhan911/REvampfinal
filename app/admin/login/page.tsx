@@ -36,8 +36,8 @@ export default function AdminLoginPage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-black">
       <div className="w-full max-w-md p-8 border border-white/10 rounded-2xl bg-gray-950 shadow-2xl">
-        <div className="flex items-center justify-center w-12 h-12 mb-6 bg-orange-600/10 rounded-xl mx-auto">
-          <Lock className="w-6 h-6 text-orange-500" />
+        <div className="flex items-center justify-center w-12 h-12 mb-6 bg-blue-600/10 rounded-xl mx-auto">
+          <Lock className="w-6 h-6 text-blue-400" />
         </div>
         <h1 className="text-2xl font-bold text-center mb-8">Admin Portal Access</h1>
 
@@ -57,7 +57,7 @@ export default function AdminLoginPage() {
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-4 py-3 bg-black border border-white/10 rounded-xl focus:border-orange-500 outline-none"
+              className="w-full px-4 py-3 bg-black border border-white/10 rounded-xl focus:border-blue-500 outline-none"
             />
           </div>
           <div>
@@ -69,12 +69,12 @@ export default function AdminLoginPage() {
               type="password"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full px-4 py-3 bg-black border border-white/10 rounded-xl focus:border-orange-500 outline-none"
+              className="w-full px-4 py-3 bg-black border border-white/10 rounded-xl focus:border-blue-500 outline-none"
             />
           </div>
           <button
             disabled={loading}
-            className="w-full flex items-center justify-center px-6 py-4 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition-all"
+            className="w-full flex items-center justify-center px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all"
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Sign In"}
           </button>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import { supabase } from '@/lib/supabase'
 import { adminAuth, unauthorizedResponse } from '@/lib/admin-auth'
 
 export const dynamic = 'force-dynamic'
@@ -9,34 +9,47 @@ export async function GET(req: NextRequest) {
   if (!admin) return unauthorizedResponse()
 
   try {
-    const stats = await prisma.$transaction([
-      prisma.order.aggregate({
-        where: { status: 'paid' },
-        _sum: { amount: true },
-        _count: { id: true },
-      }),
-      prisma.user.count(),
-      prisma.user.count({ where: { referredBy: { not: null } } }),
-      prisma.order.groupBy({
-        by: ['bundleId'] as const,
-        where: { status: 'paid' },
-        _count: { id: true },
-        orderBy: { bundleId: 'asc' }
-      })
-    ])
+    // Get paid orders stats
+    const { data: paidOrders } = await supabase
+      .from('Order')
+      .select('amount')
+      .eq('status', 'paid')
 
-    const totalRevenue = stats[0]._sum.amount || 0
-    const totalSales = stats[0]._count.id || 0
-    const totalUsers = stats[1]
-    const referralDriven = stats[2]
-    const salesPerBundle = stats[3]
+    const revenue = paidOrders?.reduce((sum, o) => sum + o.amount, 0) || 0
+    const sales = paidOrders?.length || 0
+
+    // Get total users
+    const { count: totalUsers } = await supabase
+      .from('User')
+      .select('*', { count: 'exact', head: true })
+
+    // Get referral-driven users
+    const { count: referralSales } = await supabase
+      .from('User')
+      .select('*', { count: 'exact', head: true })
+      .not('referredBy', 'is', null)
+
+    // Get sales per bundle
+    const { data: allPaidOrders } = await supabase
+      .from('Order')
+      .select('bundleId')
+      .eq('status', 'paid')
+
+    const bundleSalesMap: Record<string, number> = {}
+    allPaidOrders?.forEach(o => {
+      bundleSalesMap[o.bundleId] = (bundleSalesMap[o.bundleId] || 0) + 1
+    })
+    const bundleSales = Object.entries(bundleSalesMap).map(([bundleId, count]) => ({
+      bundleId,
+      _count: { id: count }
+    }))
 
     return NextResponse.json({
-      revenue: totalRevenue,
-      sales: totalSales,
-      users: totalUsers,
-      referralSales: referralDriven,
-      bundleSales: salesPerBundle,
+      revenue,
+      sales,
+      users: totalUsers || 0,
+      referralSales: referralSales || 0,
+      bundleSales,
     })
   } catch (error) {
     console.error('Stats fetch error:', error)

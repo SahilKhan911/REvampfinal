@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import { supabase } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,22 +12,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Referral code is required' }, { status: 400 })
     }
 
-    // Check if referral code is valid (optional, but good for data integrity)
-    const user = await prisma.user.findUnique({
-      where: { referralCode }
-    })
+    // Check if referral code is valid
+    const { data: user } = await supabase
+      .from('User')
+      .select('id')
+      .eq('referralCode', referralCode)
+      .single()
 
     if (!user) {
       return NextResponse.json({ error: 'Invalid referral code' }, { status: 404 })
     }
 
     // Capture the click
-    await prisma.referralClick.create({
-      data: {
+    await supabase
+      .from('ReferralClick')
+      .insert({
         referralCode,
         visitorIp: ip,
-      }
-    })
+      })
 
     return NextResponse.json({ success: true })
   } catch (error) {

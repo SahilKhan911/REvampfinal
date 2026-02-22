@@ -1,5 +1,7 @@
 import BundleCard from "@/components/BundleCard"
+import CountdownTimer from "@/components/CountdownTimer"
 import { Shield, Users, Zap, Award } from "lucide-react"
+import Image from "next/image"
 
 const BUNDLES = [
   {
@@ -48,17 +50,25 @@ const BUNDLES = [
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-black selection:bg-orange-500/30">
+    <div className="min-h-screen bg-black selection:bg-blue-500/30">
       {/* Hero Section */}
       <header className="relative flex flex-col items-center justify-center pt-24 pb-16 overflow-hidden text-center px-6">
-        <div className="absolute top-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(234,88,12,0.15),transparent_50%)]" />
+        <div className="absolute top-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(37,99,235,0.15),transparent_50%)]" />
         <div className="relative z-10">
-          <div className="inline-flex items-center px-4 py-2 mb-8 space-x-2 text-sm font-medium border rounded-full bg-white/5 border-white/10 text-orange-500">
+          {/* Logo */}
+          <div className="mb-6">
+            <img
+              src="https://ik.imagekit.io/cotszrkgk/Screenshot_2025-06-25_at_9.10.56_PM-removebg-preview.png?updatedAt=1756648034230"
+              alt="GSOC Logo"
+              className="w-80 h-80 mx-auto object-contain"
+            />
+          </div>
+          <div className="inline-flex items-center px-4 py-2 mb-8 space-x-2 text-sm font-medium border rounded-full bg-white/5 border-white/10 text-blue-400">
             <Zap className="w-4 h-4" />
             <span>Revamp Event Live</span>
           </div>
           <h1 className="text-5xl font-black tracking-tighter md:text-7xl lg:text-8xl">
-            Master <span className="text-orange-600">Open Source.</span>
+            Master <span className="text-blue-500">Open Source.</span>
             <br />
             Secure Your Future.
           </h1>
@@ -68,6 +78,11 @@ export default function LandingPage() {
           </p>
         </div>
       </header>
+
+      {/* Countdown Timer Section */}
+      <section className="container max-w-6xl py-12 mx-auto px-6">
+        <CountdownTimer />
+      </section>
 
       {/* Pricing Section */}
       <section className="container max-w-6xl py-24 mx-auto px-6">
@@ -83,8 +98,8 @@ export default function LandingPage() {
         <div className="container max-w-6xl mx-auto">
           <div className="grid grid-cols-1 gap-12 md:grid-cols-3">
             <div className="flex flex-col space-y-4">
-              <div className="flex items-center justify-center w-12 h-12 bg-orange-600/10 rounded-xl">
-                <Shield className="w-6 h-6 text-orange-500" />
+              <div className="flex items-center justify-center w-12 h-12 bg-blue-600/10 rounded-xl">
+                <Shield className="w-6 h-6 text-blue-400" />
               </div>
               <h3 className="text-xl font-bold">Secure Infrastructure</h3>
               <p className="text-gray-400">
@@ -93,8 +108,8 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="flex flex-col space-y-4">
-              <div className="flex items-center justify-center w-12 h-12 bg-orange-600/10 rounded-xl">
-                <Users className="w-6 h-6 text-orange-500" />
+              <div className="flex items-center justify-center w-12 h-12 bg-blue-600/10 rounded-xl">
+                <Users className="w-6 h-6 text-blue-400" />
               </div>
               <h3 className="text-xl font-bold">Referral Network</h3>
               <p className="text-gray-400">
@@ -103,8 +118,8 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="flex flex-col space-y-4">
-              <div className="flex items-center justify-center w-12 h-12 bg-orange-600/10 rounded-xl">
-                <Award className="w-6 h-6 text-orange-500" />
+              <div className="flex items-center justify-center w-12 h-12 bg-blue-600/10 rounded-xl">
+                <Award className="w-6 h-6 text-blue-400" />
               </div>
               <h3 className="text-xl font-bold">Proven Curriculum</h3>
               <p className="text-gray-400">
