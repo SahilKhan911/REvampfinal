@@ -39,7 +39,7 @@ export default function BundleCard({
     >
       {isDiscounted && (
         <span className="absolute px-3 py-1 text-xs font-semibold text-white uppercase bg-blue-600 rounded-full -top-3 left-8">
-          50% OFF till 12 PM, 23 Feb
+          50% OFF till 12 PM, 24 Feb
         </span>
       )}
 

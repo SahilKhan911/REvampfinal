@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Clock, Flame } from "lucide-react"
 
-const DEADLINE = new Date("2026-02-23T12:00:00+05:30").getTime()
+const DEADLINE = new Date("2026-02-24T12:00:00+05:30").getTime()
 
 interface TimeLeft {
     days: number
