@@ -1,18 +1,104 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Epilogue:ital,wght@0,400;0,700;0,800;0,900;1,400;1,700;1,900&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 
 :root {
-  --background: #000000;
-  --foreground: #ffffff;
+  --accent: 217 91% 60%;
+  --accent-hex: #3b82f6;
 }
 
+/* ═══════════════════════════════════════════ */
+/* STITCH "AETHER EMBER" DESIGN SYSTEM V2     */
+/* Obsidian Editorial — Tech-Noir             */
+/* ═══════════════════════════════════════════ */
+
+/* Font families */
+.font-headline { font-family: 'Epilogue', sans-serif; }
+.font-body { font-family: 'Inter', sans-serif; }
+.font-label { font-family: 'Inter', sans-serif; }
+
+/* Live feed scroll animation */
+@keyframes scrollUp {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+.animate-scroll-up {
+  animation: scrollUp 20s linear infinite;
+}
+
+/* Testimonial marquee */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 40s linear infinite;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Glassmorphic panel */
+.glass-panel {
+  background: rgba(53, 52, 55, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Amber text glow */
+.amber-glow {
+  text-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+}
+
+/* Accent notch — editorial marker */
+.accent-notch {
+  width: 4px;
+  height: 4px;
+  background-color: #f59e0b;
+}
+
+/* Hide scrollbar for horizontal scroll sections */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ═══════════════════════════════════════════ */
+/* ACCENT COLOR UTILITIES (cohort theming)    */
+/* ═══════════════════════════════════════════ */
+.accent-bg { background-color: hsl(var(--accent)); }
+.accent-bg-subtle { background-color: hsl(var(--accent) / 0.1); }
+.accent-bg-hover:hover { background-color: hsl(var(--accent) / 0.85); }
+.accent-text { color: hsl(var(--accent)); }
+.accent-text-light { color: hsl(var(--accent) / 0.8); }
+.accent-border { border-color: hsl(var(--accent) / 0.5); }
+.accent-border-subtle { border-color: hsl(var(--accent) / 0.3); }
+.accent-glow { box-shadow: 0 25px 50px -12px hsl(var(--accent) / 0.15); }
+.accent-ring { --tw-ring-color: hsl(var(--accent) / 0.5); }
+.accent-selection::selection { background-color: hsl(var(--accent) / 0.3); }
+.accent-gradient-radial {
+  background: radial-gradient(circle at 50% 0%, hsl(var(--accent) / 0.15), transparent 50%);
+}
+.accent-focus:focus { border-color: hsl(var(--accent)); outline: none; }
+.accent-dot { background-color: hsl(var(--accent)); }
+.accent-badge { background-color: hsl(var(--accent)); color: white; }
+
+/* ═══════════════════════════════════════════ */
+/* GLOBAL STYLES                              */
+/* ═══════════════════════════════════════════ */
+html { scroll-behavior: smooth; }
+
 body {
-  color: var(--foreground);
-  background: var(--background);
+  background-color: #131315;
+  color: #e5e1e4;
   font-family: 'Inter', sans-serif;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-}
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #353437; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }

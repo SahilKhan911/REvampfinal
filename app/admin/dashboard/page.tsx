@@ -8,18 +8,27 @@ import {
   IndianRupee,
   TrendingUp,
   Package,
-  CheckCircle2,
-  Clock,
   ArrowRight
 } from "lucide-react"
 import Link from "next/link"
 
+const COHORT_OPTIONS = [
+  { slug: "", label: "All Cohorts" },
+  { slug: "opensource", label: "🔓 Open Source" },
+  { slug: "webdev", label: "🌐 Web Dev" },
+  { slug: "aiml", label: "🤖 AI & ML" },
+  { slug: "launchpad", label: "🚀 Launchpad" },
+  { slug: "cp", label: "⚔️ CP" },
+]
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [cohortFilter, setCohortFilter] = useState("")
 
-  useEffect(() => {
-    fetch("/api/admin/stats")
+  const fetchStats = (cohort: string) => {
+    const url = cohort ? `/api/admin/stats?cohort=${cohort}` : "/api/admin/stats"
+    fetch(url)
       .then((res) => {
         if (!res.ok) throw new Error("Unauthorized")
         return res.json()
@@ -27,7 +36,11 @@ export default function AdminDashboard() {
       .then((data) => setStats(data))
       .catch(() => window.location.href = "/admin/login")
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(() => {
+    fetchStats(cohortFilter)
+  }, [cohortFilter])
 
   if (loading) return null
 
@@ -45,7 +58,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-black text-white p-8">
-      <nav className="flex items-center justify-between mb-12">
+      <nav className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold">Revamp Admin</h1>
           <p className="text-gray-500 text-sm">Revenue & Management Overview</p>
@@ -53,6 +66,9 @@ export default function AdminDashboard() {
         <div className="flex space-x-4">
           <Link href="/admin/orders" className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm font-medium transition-all">
             Manage Orders
+          </Link>
+          <Link href="/admin/users" className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm font-medium transition-all">
+            Users
           </Link>
           <button onClick={() => {
             document.cookie = "admin_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;"
@@ -63,28 +79,45 @@ export default function AdminDashboard() {
         </div>
       </nav>
 
+      {/* Cohort Filter */}
+      <div className="flex items-center space-x-2 mb-8 overflow-x-auto pb-2">
+        {COHORT_OPTIONS.map((c) => (
+          <button
+            key={c.slug}
+            onClick={() => { setCohortFilter(c.slug); setLoading(true) }}
+            className={`px-4 py-2 text-xs font-semibold rounded-full whitespace-nowrap transition-all ${
+              cohortFilter === c.slug
+                ? "bg-blue-600 text-white"
+                : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+            }`}
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
         <StatCard
           title="Total Revenue"
-          value={`₹${stats?.revenue}`}
+          value={`₹${stats?.revenue || 0}`}
           icon={IndianRupee}
           color="bg-green-500/10 text-green-500"
         />
         <StatCard
           title="Total Sales"
-          value={stats?.sales}
+          value={stats?.sales || 0}
           icon={CreditCard}
           color="bg-blue-500/10 text-blue-500"
         />
         <StatCard
           title="Total Users"
-          value={stats?.users}
+          value={stats?.users || 0}
           icon={Users}
           color="bg-purple-500/10 text-purple-500"
         />
         <StatCard
           title="Referral Conversions"
-          value={stats?.referralSales}
+          value={stats?.referralSales || 0}
           icon={TrendingUp}
           color="bg-blue-500/10 text-blue-400"
         />
@@ -97,12 +130,21 @@ export default function AdminDashboard() {
             Sales by Bundle
           </h3>
           <div className="space-y-4">
-            {stats?.bundleSales.map((b: any) => (
-              <div key={b.bundleId} className="flex items-center justify-between p-4 bg-black border border-white/5 rounded-xl">
-                <span className="text-sm font-medium text-gray-300">{b.bundleId}</span>
-                <span className="font-bold">{b._count.id} Sales</span>
-              </div>
-            ))}
+            {stats?.bundleSales?.length > 0 ? (
+              stats.bundleSales.map((b: any) => (
+                <div key={b.bundleId} className="flex items-center justify-between p-4 bg-black border border-white/5 rounded-xl">
+                  <div>
+                    <span className="text-sm font-medium text-gray-300">{b.bundleName || b.bundleId}</span>
+                    {b.cohortSlug && (
+                      <span className="ml-2 text-xs text-gray-500 bg-white/5 px-2 py-0.5 rounded-full">{b.cohortSlug}</span>
+                    )}
+                  </div>
+                  <span className="font-bold">{b._count.id} Sales</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500 text-sm text-center py-4">No sales data yet</p>
+            )}
           </div>
         </div>
 

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>REVAMP | OPEN SOURCE COHORT</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@400;700;800;900&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container-highest": "#353437",
+                        "on-primary": "#472a00",
+                        "secondary-fixed": "#ffddb8",
+                        "on-tertiary-fixed": "#001e2d",
+                        "on-primary-container": "#613b00",
+                        "error-container": "#93000a",
+                        "tertiary-fixed": "#c5e7ff",
+                        "tertiary": "#8fd5ff",
+                        "primary-fixed": "#ffddb8",
+                        "on-primary-fixed-variant": "#653e00",
+                        "on-tertiary-container": "#004966",
+                        "on-secondary-fixed-variant": "#62400f",
+                        "tertiary-container": "#1abdff",
+                        "inverse-primary": "#855300",
+                        "surface-container-low": "#1b1b1d",
+                        "surface-bright": "#39393b",
+                        "on-tertiary-fixed-variant": "#004c6a",
+                        "inverse-surface": "#e5e1e4",
+                        "surface-container-high": "#2a2a2c",
+                        "on-primary-fixed": "#2a1700",
+                        "on-error-container": "#ffdad6",
+                        "error": "#ffb4ab",
+                        "on-surface-variant": "#d8c3ad",
+                        "secondary-container": "#62400f",
+                        "surface-dim": "#131315",
+                        "on-background": "#e5e1e4",
+                        "primary-container": "#f59e0b",
+                        "on-secondary-container": "#ddac72",
+                        "tertiary-fixed-dim": "#7fd0ff",
+                        "primary": "#ffc174",
+                        "surface-container": "#1f1f21",
+                        "on-secondary": "#472a00",
+                        "inverse-on-surface": "#303032",
+                        "on-surface": "#e5e1e4",
+                        "primary-fixed-dim": "#ffb95f",
+                        "on-tertiary": "#00344a",
+                        "surface": "#131315",
+                        "on-secondary-fixed": "#2a1700",
+                        "background": "#131315",
+                        "secondary": "#f0bd82",
+                        "surface-variant": "#353437",
+                        "surface-tint": "#ffb95f",
+                        "on-error": "#690005",
+                        "secondary-fixed-dim": "#f0bd82",
+                        "surface-container-lowest": "#0e0e10",
+                        "outline-variant": "#534434",
+                        "outline": "#a08e7a"
+                    },
+                    fontFamily: {
+                        "headline": ["Epilogue"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hero-glow {
+            background: radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.08) 0%, rgba(19, 19, 21, 0) 70%);
+        }
+        .editorial-line {
+            background: linear-gradient(to bottom, transparent, #f59e0b, transparent);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-[#131315]/70 backdrop-blur-xl shadow-[0_0_40px_rgba(255,221,184,0.06)]">
+<div class="flex justify-between items-center px-8 h-20 w-full">
+<div class="text-2xl font-black tracking-tighter text-[#f59e0b]">REVAMP</div>
+<nav class="hidden md:flex gap-8 items-center h-full">
+<a class="font-['Epilogue'] uppercase tracking-widest text-[0.6875rem] text-[#e5e1e4]/60 hover:text-[#f59e0b] transition-colors duration-300" href="#">ARCHIVE</a>
+<a class="font-['Epilogue'] uppercase tracking-widest text-[0.6875rem] text-[#f59e0b] border-b-2 border-[#f59e0b] pb-1" href="#">COHORTS</a>
+<a class="font-['Epilogue'] uppercase tracking-widest text-[0.6875rem] text-[#e5e1e4]/60 hover:text-[#f59e0b] transition-colors duration-300" href="#">INTEL</a>
+<a class="font-['Epilogue'] uppercase tracking-widest text-[0.6875rem] text-[#e5e1e4]/60 hover:text-[#f59e0b] transition-colors duration-300" href="#">TERMINAL</a>
+</nav>
+<button class="font-['Epilogue'] uppercase tracking-widest text-[0.6875rem] bg-primary-container text-on-primary-container px-6 py-3 font-bold hover:scale-95 transition-transform duration-200">
+                JOIN COLLECTIVE
+            </button>
+</div>
+</header>
+<main class="pt-20">
+<!-- Hero Section -->
+<section class="relative min-h-[716px] flex flex-col items-center justify-center px-6 overflow-hidden">
+<div class="absolute inset-0 hero-glow pointer-events-none"></div>
+<div class="relative z-10 text-center max-w-5xl">
+<span class="font-label text-primary-container tracking-[0.4em] text-[0.6875rem] uppercase mb-4 block">LEVEL_04 COHORT</span>
+<h1 class="font-headline font-black text-6xl md:text-8xl lg:text-[10rem] leading-[0.85] tracking-tighter mb-8 text-on-surface">
+                    OPEN<br/>SOURCE
+                </h1>
+<p class="font-body text-xl md:text-2xl text-on-surface-variant font-light mb-12 max-w-2xl mx-auto">
+                    Master the art of public collaboration and become a high-impact contributor to the world's most critical codebases.
+                </p>
+<div class="flex flex-wrap items-center justify-center gap-6 mb-16">
+<div class="flex items-center gap-2 px-4 py-2 bg-surface-container-low rounded-lg">
+<span class="material-symbols-outlined text-primary" data-icon="schedule">schedule</span>
+<span class="font-label text-xs uppercase tracking-widest">4 Weeks</span>
+</div>
+<div class="flex items-center gap-2 px-4 py-2 bg-surface-container-low rounded-lg">
+<span class="material-symbols-outlined text-primary" data-icon="calendar_month">calendar_month</span>
+<span class="font-label text-xs uppercase tracking-widest">Sat &amp; Sun, 7 PM - 9 PM IST</span>
+</div>
+</div>
+<div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+<button class="bg-gradient-to-r from-primary to-primary-container text-on-primary px-10 py-5 font-bold uppercase tracking-widest text-sm hover:opacity-90 transition-all w-full sm:w-auto">
+                        Reserve Your Seat
+                    </button>
+<button class="bg-surface-container-highest text-on-surface px-10 py-5 font-bold uppercase tracking-widest text-sm border border-outline-variant/15 hover:bg-surface-bright transition-all w-full sm:w-auto">
+                        Join Community Free
+                    </button>
+</div>
+</div>
+<div class="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce opacity-20">
+<span class="material-symbols-outlined text-3xl" data-icon="expand_more">expand_more</span>
+</div>
+</section>
+<!-- Curriculum Timeline -->
+<section class="py-32 px-6 max-w-7xl mx-auto">
+<div class="grid md:grid-cols-[1fr_2fr] gap-20">
+<div>
+<h2 class="font-headline text-5xl font-extrabold tracking-tighter sticky top-32">THE<br/>CURRICULUM</h2>
+<p class="mt-6 text-on-surface-variant font-light max-w-xs">A clinical breakdown of the high-stakes journey from spectator to maintainer.</p>
+</div>
+<div class="relative space-y-24">
+<div class="absolute left-6 top-4 bottom-4 w-px editorial-line opacity-30"></div>
+<!-- Week 1 -->
+<div class="relative pl-20 group">
+<div class="absolute left-0 top-0 w-12 h-12 bg-surface-container-high flex items-center justify-center rounded-sm z-10 border border-primary-container/20 group-hover:border-primary-container transition-colors">
+<span class="font-headline font-bold text-primary-container">01</span>
+</div>
+<div>
+<h3 class="font-headline text-3xl font-bold mb-4">Git &amp; GitHub Mastery</h3>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-low p-4 rounded-sm">
+<span class="font-label text-[10px] text-primary block mb-1">MODULE_01</span>
+<p class="text-sm font-medium">Branching</p>
+</div>
+<div class="bg-surface-container-low p-4 rounded-sm">
+<span class="font-label text-[10px] text-primary block mb-1">MODULE_02</span>
+<p class="text-sm font-medium">Pull Requests</p>
+</div>
+<div class="bg-surface-container-low p-4 rounded-sm">
+<span class="font-label text-[10px] text-primary block mb-1">MODULE_03</span>
+<p class="text-sm font-medium">Merge Conflicts</p>
+</div>
+<div class="bg-surface-container-low p-4 rounded-sm">
+<span class="font-label text-[10px] text-primary block mb-1">MODULE_04</span>
+<p class="text-sm font-medium">Git Hooks</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Week 2 -->
+<div class="relative pl-20 group">
+<div class="absolute left-0 top-0 w-12 h-12 bg-surface-container-high flex items-center justify-center rounded-sm z-10 border border-primary-container/20 group-hover:border-primary-container transition-colors">
+<span class="font-headline font-bold text-primary-container">02</span>
+</div>
+<div>
+<h3 class="font-headline text-3xl font-bold mb-4">Finding Your Project</h3>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-low p-4 rounded-sm">
+<span class="font-label text-[10px] text-primary block mb-1">MODULE_05</span>
+<p class="text-sm font-medium">Issue Hunting</p>
+</div>
+<div class="bg-surface-container-low p-4 rounded-sm">
+<span class="font-label text-[10px] text-primary block mb-1">MODULE_06</span>
+<p class="text-sm font-medium">Project Analysis</p>
+</div>
+<div class="bg-surface-container-low p-4 rounded-sm">
+<span class="font-label text-[10px] text-primary block mb-1">MODULE_07</span>
+<p class="text-sm font-medium">Tech Stack Matching</p>
+</div>
+<div class="bg-surface-container-low p-4 rounded-sm">
+<span class="font-label text-[10px] text-primary block mb-1">MODULE_08</span>
+<p class="text-sm font-medium">Maintainer Research</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Week 3 -->
+<div class="relative pl-20 group">
+<div class="absolute left-0 top-0 w-12 h-12 bg-surface-container-high flex items-center justify-center rounded-sm z-10 border border-primary-container/20 group-hover:border-primary-container transition-colors">
+<span class="font-headline font-bold text-primary-container">03</span>
+</div>
+<div>
+<h3 class="font-headline text-3xl font-bold mb-4">Making Contributions</h3>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-low p-4 rounded-sm">
+<span class="font-label text-[10px] text-primary block mb-1">MODULE_09</span>
+<p class="text-sm font-medium">Documentation</p>
+</div>
+<div class="bg-surface-container-low p-4 rounded-sm">
+<span class="font-label text-[10px] text-primary block mb-1">MODULE_10</span>
+<p class="text-sm font-medium">Bug Fixes</p>
+</div>
+<div class="bg-surface-container-low p-4 rounded-sm">
+<span class="font-label text-[10px] text-primary block mb-1">MODULE_11</span>
+<p class="text-sm font-medium">Feature Implementation</p>
+</div>
+<div class="bg-surface-container-low p-4 rounded-sm">
+<span class="font-label text-[10px] text-primary block mb-1">MODULE_12</span>
+<p class="text-sm font-medium">Code Review</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Week 4 -->
+<div class="relative pl-20 group">
+<div class="absolute left-0 top-0 w-12 h-12 bg-surface-container-high flex items-center justify-center rounded-sm z-10 border border-primary-container/20 group-hover:border-primary-container transition-colors">
+<span class="font-headline font-bold text-primary-container">04</span>
+</div>
+<div>
+<h3 class="font-headline text-3xl font-bold mb-4">Building Your Portfolio</h3>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-low p-4 rounded-sm">
+<span class="font-label text-[10px] text-primary block mb-1">MODULE_13</span>
+<p class="text-sm font-medium">Showcase Projects</p>
+</div>
+<div class="bg-surface-container-low p-4 rounded-sm">
+<span class="font-label text-[10px] text-primary block mb-1">MODULE_14</span>
+<p class="text-sm font-medium">Open Source Resume</p>
+</div>
+<div class="bg-surface-container-low p-4 rounded-sm">
+<span class="font-label text-[10px] text-primary block mb-1">MODULE_15</span>
+<p class="text-sm font-medium">Networking</p>
+</div>
+<div class="bg-surface-container-low p-4 rounded-sm">
+<span class="font-label text-[10px] text-primary block mb-1">MODULE_16</span>
+<p class="text-sm font-medium">Personal Branding</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Pricing Section -->
+<section class="bg-surface-container-lowest py-32 px-6">
+<div class="max-w-7xl mx-auto">
+<div class="text-center mb-20">
+<h2 class="font-headline text-5xl md:text-6xl font-black tracking-tighter mb-4">BUNDLE_PACKS</h2>
+<p class="text-on-surface-variant uppercase tracking-widest text-xs font-bold">Invest in your career operational capacity.</p>
+</div>
+<div class="grid md:grid-cols-3 gap-8">
+<!-- Starter -->
+<div class="bg-surface-container-low p-10 flex flex-col border border-outline-variant/10 rounded-sm">
+<span class="font-label text-[10px] text-on-surface-variant tracking-[0.3em] uppercase mb-6">STARTER_OPERATIVE</span>
+<div class="mb-8">
+<span class="text-on-surface-variant line-through text-lg block">$99</span>
+<span class="text-5xl font-headline font-bold text-on-surface">$49</span>
+</div>
+<ul class="space-y-4 mb-12 flex-grow">
+<li class="flex items-center gap-3 text-sm">
+<span class="material-symbols-outlined text-primary text-lg" data-icon="check_circle">check_circle</span>
+                                Full Curriculum Access
+                            </li>
+<li class="flex items-center gap-3 text-sm">
+<span class="material-symbols-outlined text-primary text-lg" data-icon="check_circle">check_circle</span>
+                                Community Access
+                            </li>
+</ul>
+<button class="w-full py-4 bg-surface-container-highest text-on-surface font-bold uppercase tracking-widest text-xs border border-outline-variant/20 hover:bg-surface-bright transition-colors">BUY NOW</button>
+</div>
+<!-- Professional -->
+<div class="bg-surface-container-high p-10 flex flex-col border-2 border-primary-container rounded-sm relative transform scale-105 z-10 shadow-2xl">
+<div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary-container text-on-primary text-[10px] font-bold px-4 py-1 tracking-[0.2em] uppercase rounded-full">MOST_POPULAR</div>
+<span class="font-label text-[10px] text-primary-container tracking-[0.3em] uppercase mb-6">PROFESSIONAL_OPERATIVE</span>
+<div class="mb-8">
+<span class="text-on-surface-variant line-through text-lg block">$199</span>
+<span class="text-5xl font-headline font-bold text-on-surface">$99</span>
+</div>
+<ul class="space-y-4 mb-12 flex-grow">
+<li class="flex items-center gap-3 text-sm">
+<span class="material-symbols-outlined text-primary text-lg" data-icon="check_circle">check_circle</span>
+                                Everything in Starter
+                            </li>
+<li class="flex items-center gap-3 text-sm">
+<span class="material-symbols-outlined text-primary text-lg" data-icon="check_circle">check_circle</span>
+                                1-on-1 Mentorship
+                            </li>
+<li class="flex items-center gap-3 text-sm">
+<span class="material-symbols-outlined text-primary text-lg" data-icon="check_circle">check_circle</span>
+                                Priority PR Reviews
+                            </li>
+</ul>
+<button class="w-full py-4 bg-primary-container text-on-primary font-bold uppercase tracking-widest text-xs hover:opacity-90 transition-opacity">BUY NOW</button>
+</div>
+<!-- Elite -->
+<div class="bg-surface-container-low p-10 flex flex-col border border-outline-variant/10 rounded-sm">
+<span class="font-label text-[10px] text-on-surface-variant tracking-[0.3em] uppercase mb-6">ELITE_COMMANDER</span>
+<div class="mb-8">
+<span class="text-on-surface-variant line-through text-lg block">$499</span>
+<span class="text-5xl font-headline font-bold text-on-surface">$249</span>
+</div>
+<ul class="space-y-4 mb-12 flex-grow">
+<li class="flex items-center gap-3 text-sm">
+<span class="material-symbols-outlined text-primary text-lg" data-icon="check_circle">check_circle</span>
+                                Everything in Professional
+                            </li>
+<li class="flex items-center gap-3 text-sm">
+<span class="material-symbols-outlined text-primary text-lg" data-icon="check_circle">check_circle</span>
+                                Job Referrals
+                            </li>
+<li class="flex items-center gap-3 text-sm">
+<span class="material-symbols-outlined text-primary text-lg" data-icon="check_circle">check_circle</span>
+                                Lifetime Updates
+                            </li>
+</ul>
+<button class="w-full py-4 bg-surface-container-highest text-on-surface font-bold uppercase tracking-widest text-xs border border-outline-variant/20 hover:bg-surface-bright transition-colors">BUY NOW</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Outcomes -->
+<section class="py-32 px-6 max-w-7xl mx-auto">
+<h2 class="font-headline text-4xl font-extrabold tracking-tighter mb-16 text-center">OPERATIONAL_OUTCOMES</h2>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="bg-surface-container-low p-8 rounded-sm group hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-4xl text-primary-container mb-6" data-icon="verified_user">verified_user</span>
+<h4 class="font-headline font-bold text-xl mb-2">Contributor Status</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed">Verified contributor badges on high-profile GitHub repositories.</p>
+</div>
+<div class="bg-surface-container-low p-8 rounded-sm group hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-4xl text-primary-container mb-6" data-icon="trending_up">trending_up</span>
+<h4 class="font-headline font-bold text-xl mb-2">Portfolio Growth</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed">A public graph of activity that commands attention from recruiters.</p>
+</div>
+<div class="bg-surface-container-low p-8 rounded-sm group hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-4xl text-primary-container mb-6" data-icon="code">code</span>
+<h4 class="font-headline font-bold text-xl mb-2">Tech Proficiency</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed">Mastery of complex codebases and advanced git workflows.</p>
+</div>
+<div class="bg-surface-container-low p-8 rounded-sm group hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-4xl text-primary-container mb-6" data-icon="hub">hub</span>
+<h4 class="font-headline font-bold text-xl mb-2">Network Access</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed">Direct connection to maintainers and global dev communities.</p>
+</div>
+</div>
+</section>
+<!-- Final CTA -->
+<section class="py-32 bg-primary-container text-on-primary">
+<div class="max-w-4xl mx-auto px-6 text-center">
+<h2 class="font-headline text-5xl md:text-7xl font-black tracking-tighter mb-8 leading-[0.9]">READY TO START<br/>CONTRIBUTING?</h2>
+<p class="text-xl opacity-90 mb-12 max-w-xl mx-auto font-medium">Your seat in the collective is waiting. Secure your slot and begin the transition.</p>
+<div class="flex flex-col md:flex-row items-center justify-center gap-12 bg-black/10 p-12 rounded-lg backdrop-blur-sm border border-white/10">
+<div class="flex flex-col items-center gap-4">
+<div class="w-48 h-48 bg-white p-3 rounded-lg">
+<img alt="Payment QR Code" class="w-full h-full grayscale" data-alt="minimalist modern qr code for digital payment in a clinical tech aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSWoam-0VFTekloEV02eAp3ig6vAOGZ2VcfeMNZc_XZ1PoAMh7xEcr-oro8BhphM9DSa3HrAPYa1aToGOwyaeyMfXBu51O0kLVWM5h0jgY3FOGIenzJXxCJdfWRULIzk-T9jl6iwqi9AKSbvgSe10pRUo3yWGrUeyqNG-u5LJHty79pGU242T5dcBkJufh3x5Ma-DWhsVtdLGhe398rqCaVvtoH8TTTF7RlanhN8YutPvv6MlFfRb0hshxPwscTsjl0d7Hy41nV5o"/>
+</div>
+<span class="font-label text-xs uppercase tracking-widest font-bold">SCAN_TO_PAY</span>
+</div>
+<div class="hidden md:block w-px h-32 bg-on-primary/20"></div>
+<div class="flex flex-col gap-4 w-full md:w-auto">
+<button class="bg-on-primary text-primary px-12 py-5 font-black uppercase tracking-widest text-sm hover:scale-105 transition-transform w-full">
+                            ENROLL_NOW_VIA_PORTAL
+                        </button>
+<p class="text-[10px] uppercase tracking-widest opacity-60">SECURE TRANSACTION ENCRYPTED 256-BIT</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<footer class="py-20 px-8 bg-surface-container-lowest border-t border-outline-variant/5">
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start gap-12">
+<div>
+<div class="text-2xl font-black tracking-tighter text-[#f59e0b] mb-4">REVAMP</div>
+<p class="text-on-surface-variant text-xs font-label uppercase tracking-widest leading-loose">Elite Operational Training<br/>For The High-Impact Developer.</p>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-3 gap-16">
+<div>
+<h5 class="font-label text-[10px] font-bold text-primary mb-6 tracking-widest uppercase">NAVIGATE</h5>
+<ul class="space-y-4 text-xs font-medium text-on-surface-variant">
+<li><a class="hover:text-primary transition-colors" href="#">ARCHIVE</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">COHORTS</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">INTEL</a></li>
+</ul>
+</div>
+<div>
+<h5 class="font-label text-[10px] font-bold text-primary mb-6 tracking-widest uppercase">LEGAL</h5>
+<ul class="space-y-4 text-xs font-medium text-on-surface-variant">
+<li><a class="hover:text-primary transition-colors" href="#">PROTOCOLS</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">PRIVACY</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">TERMS</a></li>
+</ul>
+</div>
+<div>
+<h5 class="font-label text-[10px] font-bold text-primary mb-6 tracking-widest uppercase">CONNECT</h5>
+<ul class="space-y-4 text-xs font-medium text-on-surface-variant">
+<li><a class="hover:text-primary transition-colors" href="#">TWITTER</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">DISCORD</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">GHOST_MAIL</a></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="max-w-7xl mx-auto mt-20 pt-10 border-t border-outline-variant/5 text-[10px] text-on-surface-variant/40 font-label tracking-widest text-center">
+            © 2024 REVAMP COLLECTIVE. SYSTEM_TIME: 23:42:01. ALL_RIGHTS_RESERVED.
+        </div>
+</footer>
+</body></html>

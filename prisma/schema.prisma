@@ -8,7 +8,6 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -27,8 +26,19 @@ model User {
   @@index([referralCode])
 }
 
+model Cohort {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  name        String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  bundles     Bundle[]
+}
+
 model Bundle {
   id            String   @id @default(uuid())
+  cohortSlug    String   @default("opensource")
   name          String
   originalPrice Float
   eventPrice    Float
@@ -36,7 +46,10 @@ model Bundle {
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
 
+  cohort        Cohort?  @relation(fields: [cohortSlug], references: [slug])
   orders        Order[]
+
+  @@index([cohortSlug])
 }
 
 model Order {

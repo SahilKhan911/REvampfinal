@@ -19,8 +19,19 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const status = searchParams.get('status')
   const bundleId = searchParams.get('bundleId')
+  const cohort = searchParams.get('cohort')
 
   try {
+    // If cohort filter, get bundle IDs for that cohort first
+    let cohortBundleIds: string[] | null = null
+    if (cohort) {
+      const { data: cohortBundles } = await supabase
+        .from('Bundle')
+        .select('id')
+        .eq('cohortSlug', cohort)
+      cohortBundleIds = cohortBundles?.map(b => b.id) || []
+    }
+
     let query = supabase
       .from('Order')
       .select('*, user:User(*), bundle:Bundle(*)')
@@ -28,6 +39,9 @@ export async function GET(req: NextRequest) {
 
     if (status) query = query.eq('status', status)
     if (bundleId) query = query.eq('bundleId', bundleId)
+    if (cohortBundleIds) {
+      query = query.in('bundleId', cohortBundleIds.length > 0 ? cohortBundleIds : ['__none__'])
+    }
 
     const { data: orders, error } = await query
 

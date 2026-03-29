@@ -2,57 +2,74 @@ require('dotenv').config()
 const { PrismaClient } = require('@prisma/client')
 const bcrypt = require('bcrypt')
 
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL
-    }
-  }
-})
+const prisma = new PrismaClient()
+
+const COHORTS = [
+  { slug: 'opensource', name: 'Open Source' },
+  { slug: 'webdev', name: 'Web Development' },
+  { slug: 'aiml', name: 'AI & ML' },
+  { slug: 'launchpad', name: 'Launchpad' },
+  { slug: 'cp', name: 'Competitive Programming' },
+]
+
+const BUNDLES = [
+  // Open Source
+  { cohortSlug: 'opensource', name: 'GSOC INTENSIVE', originalPrice: 1999, eventPrice: 999, isDiscounted: true },
+  { cohortSlug: 'opensource', name: 'OPENSOURCE STARTER', originalPrice: 1499, eventPrice: 699, isDiscounted: true },
+  { cohortSlug: 'opensource', name: 'OPENSOURCE SPECIFIC', originalPrice: 1500, eventPrice: 1500, isDiscounted: false },
+  // Web Dev
+  { cohortSlug: 'webdev', name: 'FULLSTACK FOUNDATIONS', originalPrice: 1999, eventPrice: 999, isDiscounted: true },
+  { cohortSlug: 'webdev', name: 'FRONTEND MASTERY', originalPrice: 1499, eventPrice: 699, isDiscounted: true },
+  { cohortSlug: 'webdev', name: 'PORTFOLIO BOOTCAMP', originalPrice: 999, eventPrice: 499, isDiscounted: true },
+  // AI/ML
+  { cohortSlug: 'aiml', name: 'AGENTIC AI BUILDER', originalPrice: 2499, eventPrice: 1299, isDiscounted: true },
+  { cohortSlug: 'aiml', name: 'VIBE CODING STARTER', originalPrice: 1499, eventPrice: 699, isDiscounted: true },
+  { cohortSlug: 'aiml', name: 'N8N AUTOMATION', originalPrice: 1299, eventPrice: 599, isDiscounted: true },
+  // Launchpad
+  { cohortSlug: 'launchpad', name: 'STARTUP MVP', originalPrice: 1999, eventPrice: 999, isDiscounted: true },
+  { cohortSlug: 'launchpad', name: 'PRODUCT DESIGN', originalPrice: 1499, eventPrice: 699, isDiscounted: true },
+  { cohortSlug: 'launchpad', name: 'LAUNCH STRATEGY', originalPrice: 999, eventPrice: 499, isDiscounted: true },
+  // Competitive Programming
+  { cohortSlug: 'cp', name: 'ALGORITHM MASTERY', originalPrice: 1999, eventPrice: 999, isDiscounted: true },
+  { cohortSlug: 'cp', name: 'CONTEST PREP', originalPrice: 1499, eventPrice: 699, isDiscounted: true },
+  { cohortSlug: 'cp', name: 'DSA BOOTCAMP', originalPrice: 1299, eventPrice: 599, isDiscounted: true },
+]
 
 async function main() {
   console.log('Seeding database...')
   console.log('DATABASE_URL detected:', !!process.env.DATABASE_URL)
 
-  // 1. Clear existing data (optional, use with caution)
-  // await prisma.order.deleteMany()
-  // await prisma.user.deleteMany()
-  // await prisma.bundle.deleteMany()
-
-  // 2. Create Bundles
-  const bundles = [
-    {
-      name: "GSOC INTENSIVE",
-      originalPrice: 1999,
-      eventPrice: 999,
-      isDiscounted: true,
-      isActive: true,
-    },
-    {
-      name: "OPENSOURCE STARTER",
-      originalPrice: 1499,
-      eventPrice: 699,
-      isDiscounted: true,
-      isActive: true,
-    },
-    {
-      name: "OPENSOURCE SPECIFIC",
-      originalPrice: 1500,
-      eventPrice: 1500,
-      isDiscounted: false,
-      isActive: true,
-    },
-  ]
-
-  for (const b of bundles) {
-    await prisma.bundle.upsert({
-      where: { id: b.id || 'placeholder' }, // Hack for id-less bundles in seed
-      update: {},
-      create: b,
-    }).catch(async (e) => {
-      // Fallback for upsert without ID
-      await prisma.bundle.create({ data: b })
+  // 1. Seed cohorts
+  for (const cohort of COHORTS) {
+    await prisma.cohort.upsert({
+      where: { slug: cohort.slug },
+      update: { name: cohort.name },
+      create: cohort,
     })
+    console.log(`  ✓ Cohort: ${cohort.name}`)
+  }
+
+  // 2. Seed bundles
+  for (const b of BUNDLES) {
+    // Check if bundle with same name + cohort exists
+    const existing = await prisma.bundle.findFirst({
+      where: { name: b.name, cohortSlug: b.cohortSlug },
+    })
+
+    if (existing) {
+      await prisma.bundle.update({
+        where: { id: existing.id },
+        data: {
+          originalPrice: b.originalPrice,
+          eventPrice: b.eventPrice,
+          isDiscounted: b.isDiscounted,
+          isActive: true,
+        },
+      })
+    } else {
+      await prisma.bundle.create({ data: { ...b, isActive: true } })
+    }
+    console.log(`  ✓ Bundle: ${b.name} (${b.cohortSlug})`)
   }
 
   // 3. Create Admin User

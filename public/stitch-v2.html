@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>REvamp | The Right Room</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:ital,wght@0,400;0,700;0,800;0,900;1,400;1,700;1,900&amp;family=Inter:wght@300;400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-secondary-container": "#ddac72",
+              "on-tertiary-fixed-variant": "#004c6a",
+              "on-tertiary": "#00344a",
+              "on-secondary-fixed-variant": "#62400f",
+              "inverse-surface": "#e5e1e4",
+              "on-error-container": "#ffdad6",
+              "on-primary": "#472a00",
+              "error-container": "#93000a",
+              "tertiary-container": "#1abdff",
+              "on-error": "#690005",
+              "error": "#ffb4ab",
+              "on-primary-fixed-variant": "#653e00",
+              "surface-variant": "#353437",
+              "primary-container": "#f59e0b",
+              "on-secondary-fixed": "#2a1700",
+              "surface-tint": "#ffb95f",
+              "on-background": "#e5e1e4",
+              "outline-variant": "#534434",
+              "primary-fixed-dim": "#ffb95f",
+              "primary-fixed": "#ffddb8",
+              "secondary": "#f0bd82",
+              "on-primary-container": "#613b00",
+              "outline": "#a08e7a",
+              "on-secondary": "#472a00",
+              "tertiary": "#8fd5ff",
+              "inverse-on-surface": "#313032",
+              "background": "#131315",
+              "tertiary-fixed": "#c5e7ff",
+              "surface-bright": "#39393b",
+              "surface-container-highest": "#353437",
+              "surface-container-low": "#1c1b1d",
+              "on-surface": "#e5e1e4",
+              "primary": "#ffc174",
+              "surface-container": "#201f22",
+              "surface-dim": "#131315",
+              "secondary-container": "#62400f",
+              "on-tertiary-fixed": "#001e2d",
+              "tertiary-fixed-dim": "#7fd0ff",
+              "on-primary-fixed": "#2a1700",
+              "surface-container-lowest": "#0e0e10",
+              "surface": "#131315",
+              "on-tertiary-container": "#004966",
+              "secondary-fixed-dim": "#f0bd82",
+              "inverse-primary": "#855300",
+              "surface-container-high": "#2a2a2c",
+              "secondary-fixed": "#ffddb8",
+              "on-surface-variant": "#d8c3ad"
+            },
+            fontFamily: {
+              "headline": ["Epilogue"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        @keyframes scrollUp {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-50%); }
+          }
+        .animate-scroll-up {
+            animation: scrollUp 20s linear infinite;
+        }
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+            animation: marquee 40s linear infinite;
+        }
+        .glass-panel {
+            background: rgba(53, 52, 55, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .amber-glow {
+            text-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+        }
+        .accent-notch {
+            width: 4px;
+            height: 4px;
+            background-color: #f59e0b;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopNavBar (JSON Managed) -->
+<nav class="fixed top-0 w-full z-50 bg-surface/40 backdrop-blur-xl dark:bg-[#131315]/40 flex justify-between items-center px-12 py-6 max-w-[1440px] left-1/2 -translate-x-1/2 w-full">
+<div class="font-['Epilogue'] font-bold text-2xl tracking-tighter text-[#e5e1e4]">REvamp</div>
+<div class="hidden md:flex items-center gap-12">
+<a class="font-['Epilogue'] tracking-tight text-sm uppercase text-[#f59e0b] font-bold border-b border-[#f59e0b]" href="#">Sections</a>
+<a class="font-['Epilogue'] tracking-tight text-sm uppercase text-[#e5e1e4]/70 hover:text-[#e5e1e4] transition-colors" href="#">Community</a>
+<a class="font-['Epilogue'] tracking-tight text-sm uppercase text-[#e5e1e4]/70 hover:text-[#e5e1e4] transition-colors" href="#">Events</a>
+</div>
+<button class="bg-primary-container text-on-primary-container px-6 py-2 font-bold text-xs uppercase tracking-widest hover:shadow-[0_0_12px_rgba(245,158,11,0.4)] transition-all">Join Pro</button>
+</nav>
+<!-- SECTION 1: SPLIT-SCREEN HERO -->
+<section class="min-h-screen flex flex-col md:flex-row overflow-hidden pt-24">
+<!-- Hero Left -->
+<div class="w-full md:w-[60%] px-12 py-24 flex flex-col justify-center bg-surface-container-lowest relative">
+<div class="accent-notch mb-6"></div>
+<h1 class="font-headline font-black text-6xl md:text-8xl tracking-tighter leading-[0.9] max-w-2xl text-on-surface">
+                You don't need a <span class="italic text-primary-container">roadmap</span>. You need the right <span class="text-primary underline decoration-2 underline-offset-8">room.</span>
+</h1>
+<p class="mt-12 font-body text-xl text-on-surface/60 max-w-lg leading-relaxed">
+                The elite collective for Indian B.Tech students. Crafting the next generation of engineers through high-status collaboration.
+            </p>
+<div class="mt-16 flex gap-6">
+<button class="bg-primary-container text-on-primary-container px-10 py-5 font-bold uppercase tracking-widest hover:scale-105 transition-transform">Enter the Vault</button>
+<button class="border border-outline-variant/30 text-on-surface px-10 py-5 font-bold uppercase tracking-widest hover:bg-surface-container-high transition-colors">Manifesto</button>
+</div>
+</div>
+<!-- Hero Right (Live Feed) -->
+<div class="w-full md:w-[40%] bg-surface-container-low border-l border-outline-variant/10 relative overflow-hidden h-[512px] md:h-auto">
+<div class="absolute inset-0 z-10 bg-gradient-to-b from-surface-container-low via-transparent to-surface-container-low pointer-events-none"></div>
+<div class="p-12 space-y-8 animate-scroll-up">
+<!-- Update 1 -->
+<div class="p-6 bg-surface-container-highest/30 border border-outline-variant/10">
+<p class="text-xs font-label tracking-widest text-primary-container mb-2 uppercase">Live Now</p>
+<p class="font-headline font-bold text-lg text-on-surface">Aryan just joined CP 101 🎉</p>
+<p class="text-xs text-on-surface/40 mt-1 uppercase">IIT Bombay Cluster</p>
+</div>
+<!-- Update 2 -->
+<div class="p-6 bg-surface-container-highest/30 border border-outline-variant/10">
+<p class="text-xs font-label tracking-widest text-primary-container mb-2 uppercase">Success</p>
+<p class="font-headline font-bold text-lg text-on-surface">Mehak opened her first PR 🔓</p>
+<p class="text-xs text-on-surface/40 mt-1 uppercase">Open Source Domain</p>
+</div>
+<!-- Update 3 -->
+<div class="p-6 bg-surface-container-highest/30 border border-outline-variant/10">
+<p class="text-xs font-label tracking-widest text-primary-container mb-2 uppercase">Collaboration</p>
+<p class="font-headline font-bold text-lg text-on-surface">3 new teams formed for Hackathon 🚀</p>
+<p class="text-xs text-on-surface/40 mt-1 uppercase">Web-3 Sprint</p>
+</div>
+<!-- Loop repeats for animation -->
+<div class="p-6 bg-surface-container-highest/30 border border-outline-variant/10">
+<p class="text-xs font-label tracking-widest text-primary-container mb-2 uppercase">Live Now</p>
+<p class="font-headline font-bold text-lg text-on-surface">Rohit deployed to AWS ☁️</p>
+<p class="text-xs text-on-surface/40 mt-1 uppercase">DevOps Mastery</p>
+</div>
+<div class="p-6 bg-surface-container-highest/30 border border-outline-variant/10">
+<p class="text-xs font-label tracking-widest text-primary-container mb-2 uppercase">Milestone</p>
+<p class="font-headline font-bold text-lg text-on-surface">2,000 members milestone hit 🏆</p>
+<p class="text-xs text-on-surface/40 mt-1 uppercase">Community Stats</p>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 2: FULL-WIDTH COUNTER BAR (Sticky) -->
+<div class="sticky top-[80px] w-full z-40 py-4 bg-[#0e0e10] overflow-hidden whitespace-nowrap border-y border-outline-variant/5">
+<div class="flex items-center justify-center gap-16 font-headline font-black italic text-2xl md:text-4xl tracking-tighter text-primary-container amber-glow uppercase">
+<span>2,000+ Students</span>
+<span class="text-on-surface/20">|</span>
+<span>619 In One Room</span>
+<span class="text-on-surface/20">|</span>
+<span>6 Domains</span>
+<span class="text-on-surface/20">|</span>
+<span>4+ Events</span>
+</div>
+</div>
+<!-- SECTION 3: EDITORIAL STORY -->
+<section class="px-12 py-32 max-w-[1440px] mx-auto">
+<div class="flex flex-col md:flex-row gap-24 items-start">
+<div class="w-full md:w-[40%] sticky top-48">
+<div class="accent-notch mb-6"></div>
+<h2 class="font-headline font-black italic text-5xl md:text-7xl leading-tight text-on-surface">
+                    "Most college students learn alone."
+                </h2>
+<p class="mt-8 font-label text-xs tracking-[0.2em] text-on-surface/40 uppercase">
+                    The Solo-Learning Trap / Episode 01
+                </p>
+</div>
+<div class="w-full md:w-[60%] space-y-16">
+<div class="relative group overflow-hidden">
+<img alt="Coding session" class="w-full h-[600px] object-cover grayscale group-hover:grayscale-0 transition-all duration-700 ease-in-out" data-alt="monochrome cinematic shot of young students collaborating in a high-tech lab, transition to color on hover with warm amber lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCxs-FbEhgOBN2OjEiwjpbYNniK7XGVRhR1B2yWPzQ5200BBXmTGXZ9UvUj3_jJdgMPs6k977KaYEOnuuRHP_AGvpqeZ_dbZrHUOyRS6sJGtNpKksIuvpzLMlIJA43D25sxeOmwkUFJ4ajvxRhgmydENhIWp18ACY3JHn9O97kDA-tiOildj0lsC6vmQj7vm9HZcwGtvL0_H6KzXo69m3AfX3QWJzodnOZYZrSP37ZmJR9z6vcXlK1lUtJ_8duBEvha3wF-4ADA8zk"/>
+<div class="absolute bottom-0 left-0 p-8 bg-surface-container-lowest/80 backdrop-blur-md border-t border-r border-outline-variant/10">
+<span class="font-label text-xs uppercase tracking-widest text-primary-container">Documentation: Bangalore Meetup</span>
+</div>
+</div>
+<div class="max-w-xl space-y-8">
+<p class="font-body text-2xl leading-relaxed text-on-surface/80">
+                        B.Tech is often a lonely grind through outdated syllabi. We've built the antidote: A high-density room where the floor is always moving upwards.
+                    </p>
+<p class="font-body text-lg leading-relaxed text-on-surface/60">
+                        At REvamp, we prioritize peer-acceleration. From open-source contributions that actually matter to AI agents that you build in a weekend, we provide the infrastructure. No fluff. No generic roadmaps. Just execution.
+                    </p>
+<a class="inline-block font-headline font-bold text-primary-container text-xl border-b-2 border-primary-container pb-1 hover:text-primary transition-colors" href="#">
+                        Read the Full Manifesto →
+                    </a>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 4: HORIZONTAL SCROLL EVENTS -->
+<section class="py-32 bg-surface-container-lowest overflow-hidden">
+<div class="px-12 mb-16 flex justify-between items-end">
+<div>
+<div class="accent-notch mb-4"></div>
+<h3 class="font-headline font-black text-5xl tracking-tighter uppercase">Upcoming Shards</h3>
+</div>
+<p class="font-label text-xs text-on-surface/40 uppercase tracking-widest">Scroll to explore</p>
+</div>
+<div class="flex overflow-x-auto gap-8 px-12 pb-12 snap-x hide-scrollbar">
+<!-- Event 1 -->
+<div class="flex-none w-[320px] h-[500px] bg-surface-container-low p-8 flex flex-col justify-between border border-outline-variant/10 snap-center hover:bg-surface-container-high transition-colors group">
+<div class="text-6xl group-hover:scale-110 transition-transform duration-500">⚛️</div>
+<div>
+<h4 class="font-headline font-bold text-3xl leading-none mb-4">React Deep Dive: Next.js 15</h4>
+<p class="text-on-surface/60 text-sm mb-6 uppercase tracking-tight">124 Students Attending</p>
+<a class="text-xs font-bold uppercase tracking-widest text-primary-container hover:text-primary transition-colors" href="#">View on Luma</a>
+</div>
+</div>
+<!-- Event 2 -->
+<div class="flex-none w-[320px] h-[500px] bg-surface-container-low p-8 flex flex-col justify-between border border-outline-variant/10 snap-center hover:bg-surface-container-high transition-colors group">
+<div class="text-6xl group-hover:scale-110 transition-transform duration-500">🛡️</div>
+<div>
+<h4 class="font-headline font-bold text-3xl leading-none mb-4">Cyber Warfare: CTF 01</h4>
+<p class="text-on-surface/60 text-sm mb-6 uppercase tracking-tight">82 Operatives Joined</p>
+<a class="text-xs font-bold uppercase tracking-widest text-primary-container hover:text-primary transition-colors" href="#">View on Luma</a>
+</div>
+</div>
+<!-- Event 3 -->
+<div class="flex-none w-[320px] h-[500px] bg-surface-container-low p-8 flex flex-col justify-between border border-outline-variant/10 snap-center hover:bg-surface-container-high transition-colors group">
+<div class="text-6xl group-hover:scale-110 transition-transform duration-500">🚀</div>
+<div>
+<h4 class="font-headline font-bold text-3xl leading-none mb-4">Open Source: GSoC Roadmap</h4>
+<p class="text-on-surface/60 text-sm mb-6 uppercase tracking-tight">210 Contributors Ready</p>
+<a class="text-xs font-bold uppercase tracking-widest text-primary-container hover:text-primary transition-colors" href="#">View on Luma</a>
+</div>
+</div>
+<!-- Event 4 -->
+<div class="flex-none w-[320px] h-[500px] bg-surface-container-low p-8 flex flex-col justify-between border border-outline-variant/10 snap-center hover:bg-surface-container-high transition-colors group">
+<div class="text-6xl group-hover:scale-110 transition-transform duration-500">🧠</div>
+<div>
+<h4 class="font-headline font-bold text-3xl leading-none mb-4">AI Agents: Auto-GPT Workshop</h4>
+<p class="text-on-surface/60 text-sm mb-6 uppercase tracking-tight">45 Researchers Only</p>
+<a class="text-xs font-bold uppercase tracking-widest text-primary-container hover:text-primary transition-colors" href="#">View on Luma</a>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 5: THE CHOICE (Bento Grid) -->
+<section class="px-12 py-32 max-w-[1440px] mx-auto">
+<div class="mb-16">
+<h3 class="font-headline font-black text-6xl tracking-tighter uppercase mb-4">What do you want to master?</h3>
+<p class="font-body text-on-surface/40 max-w-lg uppercase tracking-widest text-xs">Pick your domain. Own your future.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 grid-rows-3 gap-6 h-auto md:h-[900px]">
+<!-- Tile 1: Open Source (Tall) -->
+<div class="md:col-span-2 md:row-span-2 bg-surface-container-low p-12 border border-outline-variant/10 hover:shadow-[inset_0_0_40px_rgba(245,158,11,0.05)] transition-all group relative overflow-hidden">
+<div class="relative z-10">
+<span class="text-primary-container font-black text-6xl mb-8 block">01</span>
+<h4 class="font-headline font-bold text-5xl mb-8 uppercase tracking-tighter">Open Source</h4>
+<ul class="space-y-4 font-body text-xl text-on-surface/60">
+<li class="flex items-center gap-3"><div class="w-1 h-1 bg-primary-container"></div> GSoC Prep &amp; Guidance</li>
+<li class="flex items-center gap-3"><div class="w-1 h-1 bg-primary-container"></div> Major League Hacking Partner</li>
+<li class="flex items-center gap-3"><div class="w-1 h-1 bg-primary-container"></div> 1k+ Collective Contributions</li>
+</ul>
+</div>
+<div class="absolute -right-20 -bottom-20 opacity-5 group-hover:opacity-10 transition-opacity">
+<span class="material-symbols-outlined text-[240px]">terminal</span>
+</div>
+</div>
+<!-- Tile 2: Web Dev -->
+<div class="bg-surface-container-low p-8 border border-outline-variant/10 hover:shadow-[inset_0_0_40px_rgba(143,213,255,0.05)] transition-all group">
+<h4 class="font-headline font-bold text-2xl mb-4 uppercase tracking-tighter">Web Dev</h4>
+<ul class="space-y-2 font-body text-sm text-on-surface/60">
+<li>• Fullstack Next.js Mastery</li>
+<li>• Web3 Integration</li>
+</ul>
+</div>
+<!-- Tile 3: AI/ML -->
+<div class="bg-surface-container-low p-8 border border-outline-variant/10 hover:shadow-[inset_0_0_40px_rgba(255,180,171,0.05)] transition-all group">
+<h4 class="font-headline font-bold text-2xl mb-4 uppercase tracking-tighter">AI/ML</h4>
+<ul class="space-y-2 font-body text-sm text-on-surface/60">
+<li>• LLM Orchestration</li>
+<li>• Computer Vision Labs</li>
+</ul>
+</div>
+<!-- Tile 4: College Starter -->
+<div class="md:col-span-2 bg-surface-container-high p-8 border border-outline-variant/10 hover:bg-surface-container-highest transition-all">
+<h4 class="font-headline font-bold text-2xl mb-4 uppercase tracking-tighter">College Starter</h4>
+<p class="text-on-surface/60 text-sm">First year in B.Tech? We show you the real game before the system breaks you.</p>
+</div>
+<!-- Tile 5: CP -->
+<div class="bg-surface-container-low p-8 border border-outline-variant/10 hover:shadow-[inset_0_0_40px_rgba(186,255,26,0.05)] transition-all">
+<h4 class="font-headline font-bold text-2xl mb-4 uppercase tracking-tighter">CP</h4>
+<p class="text-on-surface/60 text-sm">Competitive Programming. Logic building. Codeforces rituals.</p>
+</div>
+<!-- Tile 6: Cyber Security -->
+<div class="bg-surface-container-low p-8 border border-outline-variant/10 hover:shadow-[inset_0_0_40px_rgba(255,26,255,0.05)] transition-all">
+<h4 class="font-headline font-bold text-2xl mb-4 uppercase tracking-tighter">Cyber Sec</h4>
+<p class="text-on-surface/60 text-sm">Ethical hacking. CTF championships. Zero-day research.</p>
+</div>
+</div>
+</section>
+<!-- SECTION 6: TESTIMONIAL MARQUEE -->
+<section class="py-24 bg-surface-container-lowest overflow-hidden border-y border-outline-variant/5">
+<div class="flex animate-marquee gap-8 items-center">
+<!-- Testimonial 1 -->
+<div class="flex-none w-[400px] bg-surface p-8 border border-outline-variant/10">
+<p class="font-body text-lg italic text-on-surface/80 leading-relaxed">"Joining REvamp was the first time I felt like I was actually part of the global tech industry while still in college."</p>
+<div class="mt-6 flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center font-bold text-xs">SK</div>
+<div>
+<p class="font-bold text-sm uppercase">Siddharth Kumar</p>
+<p class="text-xs text-on-surface/40 uppercase">SDE @ Google</p>
+</div>
+</div>
+</div>
+<!-- Testimonial 2 -->
+<div class="flex-none w-[400px] bg-surface p-8 border border-outline-variant/10">
+<p class="font-body text-lg italic text-on-surface/80 leading-relaxed">"The intensity is unmatched. 600+ people coding in one Discord room at 3 AM is a different kind of energy."</p>
+<div class="mt-6 flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center font-bold text-xs">AP</div>
+<div>
+<p class="font-bold text-sm uppercase">Ananya Pandey</p>
+<p class="text-xs text-on-surface/40 uppercase">GSoC '24 Contributor</p>
+</div>
+</div>
+</div>
+<!-- Testimonial 3 -->
+<div class="flex-none w-[400px] bg-surface p-8 border border-outline-variant/10">
+<p class="font-body text-lg italic text-on-surface/80 leading-relaxed">"Forget certificates. REvamp gave me actual proof of work and the right network to land a high-paying internship."</p>
+<div class="mt-6 flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center font-bold text-xs">RJ</div>
+<div>
+<p class="font-bold text-sm uppercase">Rohan Joshi</p>
+<p class="text-xs text-on-surface/40 uppercase">Founding Engineer</p>
+</div>
+</div>
+</div>
+<!-- Clone for marquee -->
+<div class="flex-none w-[400px] bg-surface p-8 border border-outline-variant/10">
+<p class="font-body text-lg italic text-on-surface/80 leading-relaxed">"Joining REvamp was the first time I felt like I was actually part of the global tech industry while still in college."</p>
+<div class="mt-6 flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center font-bold text-xs">SK</div>
+<div>
+<p class="font-bold text-sm uppercase">Siddharth Kumar</p>
+<p class="text-xs text-on-surface/40 uppercase">SDE @ Google</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 7: FINAL CTA -->
+<section class="h-screen flex items-center justify-center bg-gradient-to-br from-primary-container via-[#613b00] to-surface-container-lowest relative px-12 overflow-hidden">
+<div class="absolute inset-0 opacity-20 pointer-events-none" style="background-image: radial-gradient(#ffffff 1px, transparent 1px); background-size: 40px 40px;"></div>
+<div class="text-center z-10 max-w-4xl">
+<h2 class="font-headline font-black text-7xl md:text-9xl tracking-tighter uppercase text-on-primary-container leading-none mb-12">
+                The second best time is <span class="text-on-surface underline">now.</span>
+</h2>
+<button class="bg-on-primary-container text-primary-container px-24 py-10 font-black text-2xl uppercase tracking-[0.2em] hover:scale-110 transition-transform duration-500 shadow-2xl">
+                Claim Your Seat
+            </button>
+<p class="mt-12 font-label text-xs uppercase tracking-[0.5em] text-on-primary-container/60">Limited slots for the Winter Batch</p>
+</div>
+</section>
+<!-- BottomNavBar (JSON Managed - macOS Style glassmorphism) -->
+<div class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-[#353437]/40 backdrop-blur-lg rounded-full px-6 py-3 shadow-[0_0_32px_rgba(245,158,11,0.15)] outline-variant opacity-15 border">
+<a class="text-[#e5e1e4] p-3 hover:scale-125 transition-all duration-500 hover:after:content-['Join_Free'] hover:after:ml-2 hover:after:text-[10px] hover:after:uppercase" href="#">
+<span class="material-symbols-outlined" data-icon="forum">forum</span>
+</a>
+<a class="bg-[#f59e0b] text-[#613b00] rounded-full p-3 scale-110" href="#">
+<span class="material-symbols-outlined" data-icon="chat" style="font-variation-settings: 'FILL' 1;">chat</span>
+</a>
+<a class="text-[#e5e1e4] p-3 hover:scale-125 transition-all duration-500" href="#">
+<span class="material-symbols-outlined" data-icon="photo_camera">photo_camera</span>
+</a>
+</div>
+<!-- Footer (JSON Managed) -->
+<footer class="w-full border-t border-[#353437]/20 mt-24 bg-[#131315]">
+<div class="grid grid-cols-2 gap-12 px-12 py-24 max-w-[1440px] mx-auto">
+<div>
+<div class="font-['Epilogue'] font-bold text-[#e5e1e4] text-4xl tracking-tighter mb-8">REVAMP.</div>
+<p class="font-['Inter'] text-xs tracking-[0.1em] uppercase text-[#e5e1e4]/50 leading-loose max-w-sm">
+                    A tech collective precision-engineered for the ambitious Indian student. Not a course, not a club. A movement.
+                </p>
+<p class="mt-16 font-['Inter'] text-xs tracking-[0.1em] uppercase text-[#e5e1e4]/50">
+                    © 2024 REVAMP. COLLECTIVE PRECISION.
+                </p>
+</div>
+<div class="grid grid-cols-2 gap-8">
+<div class="space-y-4">
+<p class="font-bold text-[#f59e0b] text-xs tracking-widest uppercase mb-6">Connect</p>
+<a class="block font-['Inter'] text-xs tracking-[0.1em] uppercase text-[#e5e1e4]/50 hover:text-[#e5e1e4] transition-colors" href="#">Discord</a>
+<a class="block font-['Inter'] text-xs tracking-[0.1em] uppercase text-[#e5e1e4]/50 hover:text-[#e5e1e4] transition-colors" href="#">Instagram</a>
+<a class="block font-['Inter'] text-xs tracking-[0.1em] uppercase text-[#e5e1e4]/50 hover:text-[#e5e1e4] transition-colors" href="#">WhatsApp</a>
+</div>
+<div class="space-y-4">
+<p class="font-bold text-[#f59e0b] text-xs tracking-widest uppercase mb-6">Legal</p>
+<a class="block font-['Inter'] text-xs tracking-[0.1em] uppercase text-[#e5e1e4]/50 hover:text-[#e5e1e4] transition-colors" href="#">Terms</a>
+<a class="block font-['Inter'] text-xs tracking-[0.1em] uppercase text-[#e5e1e4]/50 hover:text-[#e5e1e4] transition-colors" href="#">Privacy</a>
+</div>
+</div>
+</div>
+</footer>
+</body></html>

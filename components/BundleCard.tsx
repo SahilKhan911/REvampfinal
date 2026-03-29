@@ -31,15 +31,15 @@ export default function BundleCard({
   return (
     <div
       className={cn(
-        "relative flex flex-col p-8 transition-all duration-300 border rounded-2xl",
+        "relative flex flex-col p-8 transition-all duration-300 border rounded-2xl group",
         isPrimary
-          ? "bg-gray-900 border-blue-600/50 shadow-2xl shadow-blue-600/10 scale-105 z-10"
+          ? "bg-gray-900 accent-border accent-glow scale-105 z-10"
           : "bg-gray-900/50 border-gray-800 hover:border-gray-700"
       )}
     >
       {isDiscounted && (
-        <span className="absolute px-3 py-1 text-xs font-semibold text-white uppercase bg-blue-600 rounded-full -top-3 left-8">
-          50% OFF till 12 PM, 24 Feb
+        <span className="absolute px-3 py-1 text-xs font-semibold text-white uppercase accent-badge rounded-full -top-3 left-8">
+          LIMITED OFFER
         </span>
       )}
 
@@ -60,7 +60,7 @@ export default function BundleCard({
       <ul className="flex-1 mb-8 space-y-4">
         {features.map((feature, index) => (
           <li key={index} className="flex items-start space-x-3">
-            <Check className="w-5 h-5 mt-0.5 text-blue-400 shrink-0" />
+            <Check className="w-5 h-5 mt-0.5 accent-text shrink-0" />
             <span className="text-gray-300">{feature}</span>
           </li>
         ))}
@@ -71,7 +71,7 @@ export default function BundleCard({
         className={cn(
           "flex items-center justify-center w-full px-6 py-4 text-sm font-bold transition-all rounded-xl",
           isPrimary
-            ? "bg-blue-600 hover:bg-blue-700 text-white"
+            ? "accent-bg accent-bg-hover text-white"
             : "bg-white/10 hover:bg-white/20 text-white"
         )}
       >

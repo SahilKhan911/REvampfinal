@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>REvamp — The Digital Curator</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@400;700;800;900&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "background": "#131313",
+              "outline": "#a08e7a",
+              "on-surface-variant": "#d8c3ad",
+              "secondary-fixed-dim": "#f0bd82",
+              "surface-container-highest": "#353535",
+              "surface-tint": "#ffb95f",
+              "primary-fixed-dim": "#ffb95f",
+              "outline-variant": "#534434",
+              "on-secondary-fixed": "#2a1700",
+              "surface-container-low": "#1b1b1b",
+              "on-error-container": "#ffdad6",
+              "surface-variant": "#353535",
+              "inverse-primary": "#855300",
+              "on-tertiary-fixed": "#001e2d",
+              "on-primary-fixed-variant": "#653e00",
+              "surface": "#131313",
+              "surface-dim": "#131313",
+              "on-background": "#e2e2e2",
+              "surface-bright": "#393939",
+              "secondary": "#f0bd82",
+              "tertiary-container": "#1abdff",
+              "on-error": "#690005",
+              "tertiary": "#8fd5ff",
+              "on-secondary-fixed-variant": "#62400f",
+              "on-secondary": "#472a00",
+              "surface-container-lowest": "#0e0e0e",
+              "tertiary-fixed": "#c5e7ff",
+              "error-container": "#93000a",
+              "secondary-container": "#62400f",
+              "on-primary-container": "#613b00",
+              "primary": "#ffc174",
+              "on-secondary-container": "#ddac72",
+              "error": "#ffb4ab",
+              "tertiary-fixed-dim": "#7fd0ff",
+              "surface-container-high": "#2a2a2a",
+              "secondary-fixed": "#ffddb8",
+              "inverse-surface": "#e2e2e2",
+              "primary-fixed": "#ffddb8",
+              "on-primary-fixed": "#2a1700",
+              "surface-container": "#1f1f1f",
+              "on-tertiary-fixed-variant": "#004c6a",
+              "on-tertiary-container": "#004966",
+              "on-tertiary": "#00344a",
+              "primary-container": "#f59e0b",
+              "on-primary": "#472a00",
+              "on-surface": "#e2e2e2",
+              "inverse-on-surface": "#303030"
+            },
+            fontFamily: {
+              "headline": ["Epilogue"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #131313;
+            color: #e2e2e2;
+            font-family: 'Inter', sans-serif;
+        }
+        .dot-grid {
+            background-image: radial-gradient(rgba(83, 68, 52, 0.15) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .glass-card {
+            background: rgba(53, 53, 53, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .text-glow {
+            text-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+        }
+    </style>
+</head>
+<body class="selection:bg-primary-container selection:text-on-primary-fixed">
+<!-- Top Navigation Bar -->
+<nav class="fixed top-0 w-full z-50 bg-zinc-950/40 backdrop-blur-xl shadow-[0_8px_32px_0_rgba(245,158,11,0.08)]">
+<div class="flex justify-between items-center px-8 py-4 max-w-7xl mx-auto">
+<div class="text-2xl font-black text-amber-500 tracking-tighter italic font-epilogue">REvamp</div>
+<div class="hidden md:flex gap-8 items-center">
+<a class="font-epilogue font-bold tracking-tight text-amber-400 border-b-2 border-amber-500 pb-1" href="#">Sections</a>
+<a class="font-epilogue font-bold tracking-tight text-zinc-400 hover:text-zinc-100 transition-colors" href="#">Community</a>
+<a class="font-epilogue font-bold tracking-tight text-zinc-400 hover:text-zinc-100 transition-colors" href="#">Events</a>
+<a class="font-epilogue font-bold tracking-tight text-zinc-400 hover:text-zinc-100 transition-colors" href="#">Cohorts</a>
+</div>
+<button class="bg-primary-container text-on-primary-fixed px-6 py-2 rounded-xl font-bold font-epilogue hover:scale-105 active:scale-95 transition-all duration-300">
+                Join Now
+            </button>
+</div>
+</nav>
+<!-- Hero Section -->
+<section class="relative min-h-screen flex flex-col justify-center items-center px-6 dot-grid overflow-hidden">
+<!-- Hero Ambient Glow -->
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary-container/10 blur-[120px] rounded-full pointer-events-none"></div>
+<div class="z-10 text-center max-w-5xl mx-auto space-y-8">
+<div class="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-outline-variant bg-surface-container-low text-on-surface-variant text-sm font-medium tracking-wide">
+<span class="flex h-2 w-2 rounded-full bg-primary-container animate-pulse"></span>
+                2,000+ students already in the room
+            </div>
+<h1 class="text-5xl md:text-8xl font-black font-headline tracking-tighter leading-[0.9] text-glow">
+                You don't need a <span class="text-primary-container italic">roadmap</span>. <br/>
+                You need the <span class="text-primary-container">right room.</span>
+</h1>
+<p class="text-lg md:text-xl text-on-surface-variant max-w-2xl mx-auto font-light leading-relaxed">
+                The premier ecosystem for Indian B.Tech students to build, ship, and network. High-status community focused on proof-of-work.
+            </p>
+<div class="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
+<button class="w-full sm:w-auto px-8 py-4 bg-gradient-to-br from-primary to-primary-container text-on-primary-fixed font-bold rounded-xl text-lg hover:shadow-[0_0_30px_-5px_rgba(245,158,11,0.5)] transition-all">
+                    Find Your Path →
+                </button>
+<button class="w-full sm:w-auto px-8 py-4 border border-outline text-on-surface font-bold rounded-xl text-lg hover:bg-surface-container-highest transition-all">
+                    Join Community — Free
+                </button>
+</div>
+</div>
+<!-- Scroll Indicator -->
+<div class="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50">
+<span class="text-[10px] uppercase tracking-[0.4em] font-bold">Scroll to Enter</span>
+<div class="w-px h-12 bg-gradient-to-b from-primary-container to-transparent"></div>
+</div>
+</section>
+<!-- The Story Section -->
+<section class="py-32 px-6 bg-surface">
+<div class="max-w-7xl mx-auto grid md:grid-cols-2 gap-16 items-center">
+<div class="space-y-12">
+<h2 class="text-4xl md:text-6xl font-black font-headline tracking-tighter leading-none">
+                    Building a community <br/>
+<span class="text-on-surface-variant/40">one student at a time.</span>
+</h2>
+<div class="space-y-6 text-xl md:text-2xl text-on-surface-variant font-light leading-relaxed">
+<p>It started with a simple observation: <span class="text-on-surface font-medium">most college students learn alone.</span> Staring at screens, following rigid roadmaps that lead to generic projects.</p>
+<p>We organized one session. <span class="text-on-surface font-medium">428 students showed up.</span></p>
+<p>The next one? <span class="text-on-surface font-medium">619.</span></p>
+<p>The energy was undeniable. The ambition was palpable. But the structure was missing.</p>
+<p class="text-primary-container font-bold italic text-3xl">So we built one.</p>
+</div>
+</div>
+<div class="relative group">
+<div class="absolute -inset-4 bg-primary-container/10 blur-3xl rounded-full group-hover:bg-primary-container/20 transition-all"></div>
+<img alt="Community Event" class="relative rounded-2xl grayscale hover:grayscale-0 transition-all duration-700 aspect-[4/5] object-cover shadow-2xl" data-alt="high contrast black and white photo of a large group of college students in a modern tech lecture hall, dramatic lighting with amber highlights" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDsM5xE89AvwhjEXrAfyFTiGzUTwEjSjbX-hd5Otddcagvc6yDz_f5IVpdbKgwmItLkZhhS3HopiNxR80u65KsbI_g3zB3_dmBAh_eJHRtoCs8JaiCKq12cJqa3knO0AboDj40autHMKBejbVjlu8-WQV6A-DQYM38ofYaLHoz28HlwBgnUKNchsCBxICNtAv20DNWeE-3bUzEXxNqC26IfKD3LpYmCEzwSVPdTcZ6Fq5CzuGzqH6iQyTPu-sFI4WPkldGnpJqNxlA"/>
+</div>
+</div>
+</section>
+<!-- Social Proof & Stats -->
+<section class="py-32 bg-surface-container-low">
+<div class="max-w-7xl mx-auto px-6">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-24">
+<div class="space-y-1">
+<div class="text-5xl font-black font-headline text-primary-container">2,000+</div>
+<div class="text-sm uppercase tracking-widest text-on-surface-variant font-bold">Students</div>
+</div>
+<div class="space-y-1">
+<div class="text-5xl font-black font-headline text-primary-container">619</div>
+<div class="text-sm uppercase tracking-widest text-on-surface-variant font-bold">In One Room</div>
+</div>
+<div class="space-y-1">
+<div class="text-5xl font-black font-headline text-primary-container">6</div>
+<div class="text-sm uppercase tracking-widest text-on-surface-variant font-bold">Tech Domains</div>
+</div>
+<div class="space-y-1">
+<div class="text-5xl font-black font-headline text-primary-container">4+</div>
+<div class="text-sm uppercase tracking-widest text-on-surface-variant font-bold">Mega Events</div>
+</div>
+</div>
+<!-- Event Cards -->
+<div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="bg-surface-container p-8 rounded-xl hover:translate-y-[-8px] transition-all duration-300">
+<div class="text-4xl mb-6">🔓</div>
+<h3 class="text-xl font-bold font-headline mb-2">OpenSource 101</h3>
+<p class="text-on-surface-variant text-sm mb-4 italic">619 Guests • Luma Event</p>
+<a class="text-primary-container text-xs font-black uppercase tracking-widest hover:underline" href="#">View Recap →</a>
+</div>
+<div class="bg-surface-container p-8 rounded-xl hover:translate-y-[-8px] transition-all duration-300">
+<div class="text-4xl mb-6">⚔️</div>
+<h3 class="text-xl font-bold font-headline mb-2">CP 101</h3>
+<p class="text-on-surface-variant text-sm mb-4 italic">490 Guests • Luma Event</p>
+<a class="text-primary-container text-xs font-black uppercase tracking-widest hover:underline" href="#">View Recap →</a>
+</div>
+<div class="bg-surface-container p-8 rounded-xl hover:translate-y-[-8px] transition-all duration-300">
+<div class="text-4xl mb-6">🌐</div>
+<h3 class="text-xl font-bold font-headline mb-2">Web Dev Ritual</h3>
+<p class="text-on-surface-variant text-sm mb-4 italic">350 Guests • Luma Event</p>
+<a class="text-primary-container text-xs font-black uppercase tracking-widest hover:underline" href="#">View Recap →</a>
+</div>
+<div class="bg-surface-container p-8 rounded-xl hover:translate-y-[-8px] transition-all duration-300">
+<div class="text-4xl mb-6">🤖</div>
+<h3 class="text-xl font-bold font-headline mb-2">AI Agents Live</h3>
+<p class="text-on-surface-variant text-sm mb-4 italic">280 Guests • Luma Event</p>
+<a class="text-primary-container text-xs font-black uppercase tracking-widest hover:underline" href="#">View Recap →</a>
+</div>
+</div>
+</div>
+</section>
+<!-- Community Section -->
+<section class="py-32 px-6">
+<div class="max-w-5xl mx-auto text-center mb-16">
+<h2 class="text-4xl md:text-5xl font-black font-headline tracking-tighter mb-4">Join the community first.</h2>
+<p class="text-on-surface-variant text-lg">No payment. No commitment. Just the right energy.</p>
+</div>
+<div class="max-w-7xl mx-auto grid md:grid-cols-3 gap-8">
+<!-- Discord -->
+<div class="glass-card p-10 rounded-2xl border border-white/5 hover:border-indigo-500/30 transition-all group">
+<div class="w-14 h-14 bg-indigo-600/20 rounded-xl flex items-center justify-center mb-8">
+<img alt="Discord" class="w-8 h-8" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB26bEBpy0gsVvmAp4Pqqx7dQY6rnFmDJq6BUZbajpDOvZ34465xKBifizQjYpMIpIiL3ZkJx3s-9NWzdnbJmWRvmTZnGjoCpKFQMA0zdOYYpew0od3DP83hM-JVjQelCicBAgO1YmJHLOYqDgZeXrDYsVN1mJbbTviQ8h0-XsmH1Q0V9iEpSIy3A_jGKol8lZZrmDt6Jx6WvUJgyh3fWHn2HyQJdPotoTP9yGlzAB8b8V_2rf7gJQgwpx6yqC1BZBBCaPjx3_L790"/>
+</div>
+<h3 class="text-2xl font-bold font-headline mb-4">Discord</h3>
+<p class="text-on-surface-variant mb-8 font-light">Late night voice chats, resource sharing, and peer-to-peer coding help.</p>
+<button class="w-full py-4 bg-indigo-600 rounded-xl font-bold hover:bg-indigo-500 transition-colors">Join Discord</button>
+</div>
+<!-- WhatsApp -->
+<div class="glass-card p-10 rounded-2xl border border-white/5 hover:border-green-500/30 transition-all group">
+<div class="w-14 h-14 bg-green-600/20 rounded-xl flex items-center justify-center mb-8">
+<img alt="WhatsApp" class="w-8 h-8" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0HKS_S8AfqLIPok5HQN_BZy3WFhiY4N4ayHaXee-M6qje0R3T9VL3SRAStOo4Z6IiqNrWS-lLEx75PkN0Pf6Y4Bj1rQM90R0jXMLD0i88jlXmeXtsn30Rd6h54kRFqGnWGkpIKxokKfMu1R0Qp3__cI50RDWhmITGAubhyDvsgLW3jw4CRnwZ5FVXv28XvrpH3xNAOa3u8IOKSeX7JXAvxUp1OZSTG58_eFsX0M2BmRY0britq5hBtB2hR0J8Blmn3lD8EgHsKY4"/>
+</div>
+<h3 class="text-2xl font-bold font-headline mb-4">WhatsApp</h3>
+<p class="text-on-surface-variant mb-8 font-light">Instant updates for local meetups, session alerts, and community polls.</p>
+<button class="w-full py-4 bg-green-600 rounded-xl font-bold hover:bg-green-500 transition-colors">Join WhatsApp</button>
+</div>
+<!-- Instagram -->
+<div class="glass-card p-10 rounded-2xl border border-white/5 hover:border-pink-500/30 transition-all group">
+<div class="w-14 h-14 bg-pink-600/20 rounded-xl flex items-center justify-center mb-8">
+<img alt="Instagram" class="w-8 h-8" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDKFBigfiFCdoBHFQIN6AbCi2ialhwHhgsAdNfSzmhKkxTERawhsg12TndyJsA6cOjVe65wNxKDwZOncrcPnpF4S_PPl6wTl3d_HLJfHlyXJVkzqcGue9YMb9DNw-IYLPJ85rVstOrNj2maNkLEqN4uEh8d_eyNxu0ytizXj_GK6Zprl5Xf3p15ZNvHzetgJ2rDgROcnfJTImzztyc6lN5pOEr06heDbMZDTL0fIeDzbdKPJ9iAMe42zmxJIlmhJ1cjph9Cl88dPas"/>
+</div>
+<h3 class="text-2xl font-bold font-headline mb-4">Instagram</h3>
+<p class="text-on-surface-variant mb-8 font-light">Visual recaps, student highlights, and behind-the-scenes of REvamp.</p>
+<button class="w-full py-4 bg-gradient-to-tr from-orange-500 to-pink-600 rounded-xl font-bold hover:opacity-90 transition-opacity">Follow Us</button>
+</div>
+</div>
+</section>
+<!-- Testimonials -->
+<section class="py-32 bg-surface-container-lowest">
+<div class="max-w-7xl mx-auto px-6">
+<h2 class="text-3xl font-black font-headline mb-16 uppercase tracking-widest text-center">Student Voices</h2>
+<div class="grid md:grid-cols-3 gap-8">
+<div class="bg-surface-container p-8 rounded-xl border-l-4 border-primary-container">
+<div class="flex gap-1 text-primary-container mb-6">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<p class="text-on-surface text-lg mb-8 italic">"The CP 101 session changed how I approach problem-solving. It's not just about code, it's about the mindset of the room."</p>
+<div>
+<p class="font-bold">Aryan Sharma</p>
+<p class="text-sm text-on-surface-variant uppercase font-bold tracking-tighter">DTU • CP 101 Attendee</p>
+</div>
+</div>
+<div class="bg-surface-container p-8 rounded-xl border-l-4 border-primary-container">
+<div class="flex gap-1 text-primary-container mb-6">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<p class="text-on-surface text-lg mb-8 italic">"Finally found a community in India that focuses on building projects instead of just buying certificates."</p>
+<div>
+<p class="font-bold">Mehak Jain</p>
+<p class="text-sm text-on-surface-variant uppercase font-bold tracking-tighter">VIT • Web Dev Ritual</p>
+</div>
+</div>
+<div class="bg-surface-container p-8 rounded-xl border-l-4 border-primary-container">
+<div class="flex gap-1 text-primary-container mb-6">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<p class="text-on-surface text-lg mb-8 italic">"The energy at the OpenSource event was insane. 600+ people and everyone was genuinely learning."</p>
+<div>
+<p class="font-bold">Rahul Verma</p>
+<p class="text-sm text-on-surface-variant uppercase font-bold tracking-tighter">NSUT • OpenSource 101</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Choose Your Path -->
+<section class="py-32 px-6">
+<div class="max-w-7xl mx-auto">
+<h2 class="text-4xl md:text-6xl font-black font-headline tracking-tighter mb-16 text-center">Choose Your Path</h2>
+<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+<!-- Open Source -->
+<div class="group relative bg-surface-container rounded-2xl p-10 overflow-hidden hover:shadow-[0_0_50px_-10px_rgba(245,158,11,0.2)] transition-all">
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-12 translate-x-12 blur-2xl group-hover:bg-primary/20 transition-all"></div>
+<div class="text-4xl mb-6">🔓</div>
+<h3 class="text-2xl font-black font-headline mb-2">Open Source</h3>
+<p class="text-on-surface-variant mb-8 font-light italic">Master the art of public collaboration.</p>
+<a class="inline-flex items-center gap-2 text-primary-container font-black uppercase tracking-widest group-hover:gap-4 transition-all" href="#">Explore <span class="material-symbols-outlined">arrow_forward</span></a>
+</div>
+<!-- Web Dev -->
+<div class="group relative bg-surface-container rounded-2xl p-10 overflow-hidden hover:shadow-[0_0_50px_-10px_rgba(59,130,246,0.2)] transition-all">
+<div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full -translate-y-12 translate-x-12 blur-2xl group-hover:bg-blue-500/20 transition-all"></div>
+<div class="text-4xl mb-6">🌐</div>
+<h3 class="text-2xl font-black font-headline mb-2">Web Dev</h3>
+<p class="text-on-surface-variant mb-8 font-light italic">Build modern high-performance web apps.</p>
+<a class="inline-flex items-center gap-2 text-blue-400 font-black uppercase tracking-widest group-hover:gap-4 transition-all" href="#">Explore <span class="material-symbols-outlined">arrow_forward</span></a>
+</div>
+<!-- AI/ML -->
+<div class="group relative bg-surface-container rounded-2xl p-10 overflow-hidden hover:shadow-[0_0_50px_-10px_rgba(168,85,247,0.2)] transition-all">
+<div class="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full -translate-y-12 translate-x-12 blur-2xl group-hover:bg-purple-500/20 transition-all"></div>
+<div class="text-4xl mb-6">🤖</div>
+<h3 class="text-2xl font-black font-headline mb-2">AI/ML</h3>
+<p class="text-on-surface-variant mb-8 font-light italic">From theory to shipping intelligent agents.</p>
+<a class="inline-flex items-center gap-2 text-purple-400 font-black uppercase tracking-widest group-hover:gap-4 transition-all" href="#">Explore <span class="material-symbols-outlined">arrow_forward</span></a>
+</div>
+<!-- College Starter -->
+<div class="group relative bg-surface-container rounded-2xl p-10 overflow-hidden hover:shadow-[0_0_50px_-10px_rgba(34,197,94,0.2)] transition-all">
+<div class="absolute top-0 right-0 w-32 h-32 bg-green-500/5 rounded-full -translate-y-12 translate-x-12 blur-2xl group-hover:bg-green-500/20 transition-all"></div>
+<div class="text-4xl mb-6">🚀</div>
+<h3 class="text-2xl font-black font-headline mb-2">College Starter</h3>
+<p class="text-on-surface-variant mb-8 font-light italic">First year blueprint for tech dominance.</p>
+<a class="inline-flex items-center gap-2 text-green-400 font-black uppercase tracking-widest group-hover:gap-4 transition-all" href="#">Explore <span class="material-symbols-outlined">arrow_forward</span></a>
+</div>
+<!-- CP -->
+<div class="group relative bg-surface-container rounded-2xl p-10 overflow-hidden hover:shadow-[0_0_50px_-10px_rgba(239,68,68,0.2)] transition-all">
+<div class="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-full -translate-y-12 translate-x-12 blur-2xl group-hover:bg-red-500/20 transition-all"></div>
+<div class="text-4xl mb-6">⚔️</div>
+<h3 class="text-2xl font-black font-headline mb-2">CP</h3>
+<p class="text-on-surface-variant mb-8 font-light italic">Algorithms, data structures, and contests.</p>
+<a class="inline-flex items-center gap-2 text-red-400 font-black uppercase tracking-widest group-hover:gap-4 transition-all" href="#">Explore <span class="material-symbols-outlined">arrow_forward</span></a>
+</div>
+<!-- Cyber Security -->
+<div class="group relative bg-surface-container rounded-2xl p-10 overflow-hidden hover:shadow-[0_0_50px_-10px_rgba(251,191,36,0.2)] transition-all">
+<div class="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full -translate-y-12 translate-x-12 blur-2xl group-hover:bg-amber-500/20 transition-all"></div>
+<div class="text-4xl mb-6">🛡️</div>
+<h3 class="text-2xl font-black font-headline mb-2">Cyber Security</h3>
+<p class="text-on-surface-variant mb-8 font-light italic">Defend the grid. Ethical hacking masterclass.</p>
+<a class="inline-flex items-center gap-2 text-amber-400 font-black uppercase tracking-widest group-hover:gap-4 transition-all" href="#">Explore <span class="material-symbols-outlined">arrow_forward</span></a>
+</div>
+</div>
+</div>
+</section>
+<!-- Final CTA -->
+<section class="py-32 bg-background relative overflow-hidden">
+<div class="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary-container to-transparent opacity-30"></div>
+<div class="max-w-4xl mx-auto px-6 text-center space-y-12 relative z-10">
+<h2 class="text-4xl md:text-6xl font-black font-headline tracking-tighter">
+                The best time to start was last semester. <br/>
+<span class="text-primary-container">The second best time is now.</span>
+</h2>
+<button class="px-12 py-5 bg-primary-container text-on-primary-fixed font-black text-xl rounded-xl hover:scale-110 active:scale-95 transition-all shadow-2xl shadow-primary-container/20">
+                Join REvamp Today
+            </button>
+</div>
+<div class="absolute bottom-0 right-0 w-[40vw] h-[40vw] bg-primary-container/5 blur-[150px] rounded-full translate-x-1/4 translate-y-1/4"></div>
+</section>
+<!-- Footer -->
+<footer class="bg-zinc-950 w-full py-12 border-t border-zinc-800/20">
+<div class="flex flex-col md:flex-row justify-between items-center px-12 gap-8 max-w-7xl mx-auto">
+<div class="flex flex-col items-center md:items-start gap-2">
+<div class="text-lg font-bold text-zinc-100 font-headline uppercase tracking-widest">REvamp</div>
+<p class="text-zinc-500 text-sm font-body">Building rooms, not courses.</p>
+</div>
+<div class="flex flex-wrap justify-center gap-8 font-inter text-sm uppercase tracking-widest">
+<a class="text-zinc-500 hover:text-amber-400 transition-colors" href="#">Discord</a>
+<a class="text-zinc-500 hover:text-amber-400 transition-colors" href="#">LinkedIn</a>
+<a class="text-zinc-500 hover:text-amber-400 transition-colors" href="#">Instagram</a>
+<a class="text-zinc-500 hover:text-amber-400 transition-colors" href="#">Email</a>
+<a class="text-zinc-500 hover:text-amber-400 transition-colors" href="#">Privacy</a>
+</div>
+<p class="text-zinc-600 text-xs font-inter uppercase tracking-widest">
+                © 2024 REvamp. The Digital Curator.
+            </p>
+</div>
+</footer>
+</body></html>

@@ -15,7 +15,7 @@ interface CheckoutModalProps {
 
 export default function CheckoutModal({ bundle, onClose }: CheckoutModalProps) {
   const router = useRouter()
-  const [step, setStep] = useState(1) // 1: Details, 2: Payment Method, 3: QR Flow
+  const [step, setStep] = useState(1) // 1: Details, 3: QR Flow
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
@@ -31,7 +31,7 @@ export default function CheckoutModal({ bundle, onClose }: CheckoutModalProps) {
 
   const handleDetailsSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    setStep(3) // Skip step 2 (method selection) and go directly to QR
+    setStep(3) // Go directly to QR
   }
 
   const handleQRSubmission = async (e: React.FormEvent) => {
@@ -84,7 +84,7 @@ export default function CheckoutModal({ bundle, onClose }: CheckoutModalProps) {
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="John Doe"
-                  className="w-full px-4 py-3 bg-black border border-white/10 rounded-xl focus:border-blue-500 outline-none transition-colors"
+                  className="w-full px-4 py-3 bg-black border border-white/10 rounded-xl accent-focus transition-colors"
                 />
               </div>
               <div>
@@ -96,7 +96,7 @@ export default function CheckoutModal({ bundle, onClose }: CheckoutModalProps) {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="john@example.com"
-                  className="w-full px-4 py-3 bg-black border border-white/10 rounded-xl focus:border-blue-500 outline-none transition-colors"
+                  className="w-full px-4 py-3 bg-black border border-white/10 rounded-xl accent-focus transition-colors"
                 />
               </div>
               <div>
@@ -108,7 +108,7 @@ export default function CheckoutModal({ bundle, onClose }: CheckoutModalProps) {
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="+91 9988776655"
-                  className="w-full px-4 py-3 bg-black border border-white/10 rounded-xl focus:border-blue-500 outline-none transition-colors"
+                  className="w-full px-4 py-3 bg-black border border-white/10 rounded-xl accent-focus transition-colors"
                 />
               </div>
               <div>
@@ -121,20 +121,19 @@ export default function CheckoutModal({ bundle, onClose }: CheckoutModalProps) {
                   onChange={handleChange}
                   placeholder="For your dashboard login"
                   minLength={6}
-                  className="w-full px-4 py-3 bg-black border border-white/10 rounded-xl focus:border-blue-500 outline-none transition-colors"
+                  className="w-full px-4 py-3 bg-black border border-white/10 rounded-xl accent-focus transition-colors"
                 />
                 <p className="mt-1 text-[11px] text-gray-600">Min 6 characters. You'll use this to log in to your dashboard.</p>
               </div>
               <button
                 type="submit"
-                className="w-full flex items-center justify-center px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all mt-4"
+                className="w-full flex items-center justify-center px-6 py-4 accent-bg accent-bg-hover text-white font-bold rounded-xl transition-all mt-4"
               >
                 Continue to Payment
                 <ChevronRight className="w-4 h-4 ml-2" />
               </button>
             </form>
           )}
-
 
           {step === 3 && (
             <form onSubmit={handleQRSubmission} className="space-y-6">
@@ -164,7 +163,7 @@ export default function CheckoutModal({ bundle, onClose }: CheckoutModalProps) {
                   value={formData.transactionId}
                   onChange={handleChange}
                   placeholder="12 digit number"
-                  className="w-full px-4 py-3 bg-black border border-white/10 rounded-xl focus:border-blue-500 outline-none transition-colors"
+                  className="w-full px-4 py-3 bg-black border border-white/10 rounded-xl accent-focus transition-colors"
                 />
               </div>
 
@@ -179,7 +178,7 @@ export default function CheckoutModal({ bundle, onClose }: CheckoutModalProps) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-[2] flex items-center justify-center px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all"
+                  className="flex-[2] flex items-center justify-center px-6 py-4 accent-bg accent-bg-hover text-white font-bold rounded-xl transition-all"
                 >
                   {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : "Submit Details"}
                 </button>
@@ -188,6 +187,6 @@ export default function CheckoutModal({ bundle, onClose }: CheckoutModalProps) {
           )}
         </div>
       </div>
-    </div >
+    </div>
   )
 }
