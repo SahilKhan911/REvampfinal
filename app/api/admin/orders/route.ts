@@ -85,6 +85,16 @@ export async function PATCH(req: NextRequest) {
 
       if (updateErr) throw updateErr
 
+      // 1b. Auto-create Enrollment
+      if (order.bundleId && order.userId) {
+        const { error: enrollErr } = await supabase.from('Enrollment').insert({
+          userId: order.userId,
+          bundleId: order.bundleId,
+          status: 'ACTIVE',
+        })
+        if (enrollErr) console.error('Enrollment creation failed:', enrollErr.message)
+      }
+
       // 2. Finalize referral code if temp
       let finalReferralCode = order.user?.referralCode || ''
       if (finalReferralCode.startsWith('tmp_')) {
@@ -116,26 +126,33 @@ export async function PATCH(req: NextRequest) {
         if (referrer) {
           const earning = REFERRAL_EARNINGS[order.bundleId] || 200
           const newTotalReferrals = (referrer.totalReferrals || 0) + 1
-          const newTotalEarnings = (referrer.referralEarnings || 0) + earning
 
           // Update referrer's stats
           await supabase
             .from('User')
             .update({
               totalReferrals: newTotalReferrals,
-              referralEarnings: newTotalEarnings,
             })
             .eq('id', referrer.id)
 
+          // Record the payout
+          await supabase.from('ReferralPayout').insert({
+            userId: referrer.id,
+            amountPaid: earning,
+            transactionRef: `order_${orderId}`,
+          })
+
           // Email the referrer about their earning
-          await sendReferralEarningEmail(
-            referrer.email,
-            referrer.name,
-            order.user.name,
-            order.bundle?.name || order.bundleId,
-            earning,
-            newTotalEarnings
-          )
+          try {
+            await sendReferralEarningEmail(
+              referrer.email,
+              referrer.name,
+              order.user.name,
+              order.bundle?.name || order.bundleId,
+              earning,
+              earning * newTotalReferrals
+            )
+          } catch { /* non-blocking */ }
         }
       }
 

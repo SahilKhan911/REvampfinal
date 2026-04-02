@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import jwt from 'jsonwebtoken'
 import { env } from '@/lib/env'
+import { checkAndGrantAchievements, calculateLevel, getLevelName } from '@/lib/achievements'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
     try {
-        // Verify user token
         const token = req.cookies.get('user_token')?.value
         if (!token) {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
@@ -20,7 +20,6 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
         }
 
-        // Get user details
         const { data: user, error: userErr } = await supabase
             .from('User')
             .select('*')
@@ -31,18 +30,30 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 })
         }
 
-        // Get user's orders with bundle info
-        const { data: orders } = await supabase
-            .from('Order')
-            .select('*, bundle:Bundle(*)')
-            .eq('userId', user.id)
-            .order('createdAt', { ascending: false })
+        // Fire achievement check in background (non-blocking)
+        checkAndGrantAchievements(user.id).catch(() => {})
 
-        // Get referral stats - how many users used this person's code
-        const { data: referredUsers } = await supabase
-            .from('User')
-            .select('id, name, email, createdAt')
-            .eq('referredBy', user.referralCode)
+        // Parallel data fetches
+        const [
+            { data: orders },
+            { data: enrollments },
+            { data: subscriptions },
+            { data: referredUsers },
+            { data: referralPayouts },
+            { data: userAchievements },
+            { data: allAchievements },
+        ] = await Promise.all([
+            supabase.from('Order').select('*, bundle:Bundle(*, cohort:Cohort(name, slug, emoji, accentHex))').eq('userId', user.id).order('createdAt', { ascending: false }),
+            supabase.from('Enrollment').select('*, bundle:Bundle(*, cohort:Cohort(name, slug, emoji, accentHex))').eq('userId', user.id).order('enrolledAt', { ascending: false }),
+            supabase.from('DomainSubscription').select('*, cohort:Cohort(id, slug, name, emoji, accentHex, description)').eq('userId', user.id).order('createdAt', { ascending: false }),
+            supabase.from('User').select('id, name, email, createdAt').eq('referredBy', user.referralCode),
+            supabase.from('ReferralPayout').select('*').eq('userId', user.id).order('paidAt', { ascending: false }),
+            supabase.from('UserAchievement').select('*, achievement:Achievement(*)').eq('userId', user.id).order('unlockedAt', { ascending: false }),
+            supabase.from('Achievement').select('*').eq('isActive', true),
+        ])
+
+        const totalEarnings = (referralPayouts || []).reduce((sum: number, p: any) => sum + (p.amountPaid || 0), 0)
+        const levelInfo = calculateLevel(user.xp || 0)
 
         return NextResponse.json({
             user: {
@@ -50,13 +61,36 @@ export async function GET(req: NextRequest) {
                 name: user.name,
                 email: user.email,
                 phone: user.phone,
+                avatarUrl: user.avatarUrl,
+                bio: user.bio,
+                college: user.college,
+                graduationYear: user.graduationYear,
+                skills: user.skills,
+                linkedinUrl: user.linkedinUrl,
+                githubUrl: user.githubUrl,
+                twitterUrl: user.twitterUrl,
+                isProfilePublic: user.isProfilePublic,
+                xp: user.xp || 0,
+                level: levelInfo.level,
+                levelName: levelInfo.name,
+                nextLevelXp: levelInfo.nextLevelXp,
                 referralCode: user.referralCode,
-                referralEarnings: user.referralEarnings || 0,
                 totalReferrals: user.totalReferrals || 0,
                 createdAt: user.createdAt,
             },
             orders: orders || [],
+            enrollments: enrollments || [],
+            subscriptions: subscriptions || [],
             referredUsers: referredUsers || [],
+            referralPayouts: referralPayouts || [],
+            totalEarnings,
+            achievements: {
+                unlocked: (userAchievements || []).map((ua: any) => ({
+                    ...ua.achievement,
+                    unlockedAt: ua.unlockedAt,
+                })),
+                all: allAchievements || [],
+            },
         })
     } catch (error: any) {
         console.error('Dashboard data error:', error)

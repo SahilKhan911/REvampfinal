@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,48 +5,120 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
   id              String   @id @default(uuid())
+  role            String   @default("USER") // USER, ADMIN
   name            String
   email           String   @unique
   phone           String
   passwordHash    String?
+  avatarUrl       String?
+  bio             String?
+  utmSource       String?
+  utmCampaign     String?
+  tags            Json?    // ["high-intent", "b.tech"]
+  
+  // Profile enhancements
+  college         String?
+  graduationYear  Int?
+  skills          Json?    // ["React", "Python", "Linux"]
+  linkedinUrl     String?
+  githubUrl       String?
+  twitterUrl      String?
+  isProfilePublic Boolean  @default(true)
+  
+  // Gamification
+  xp              Int      @default(0)
+  level           Int      @default(1)
+  
   referralCode    String   @unique
   referredBy      String?
   totalReferrals  Int      @default(0)
   createdAt       DateTime @default(now())
   
   orders          Order[]
+  enrollments     Enrollment[]
+  subscriptions   DomainSubscription[]
+  achievements    UserAchievement[]
+  connectionsSent Connection[]       @relation("ConnectionsSent")
+  connectionsRecvd Connection[]      @relation("ConnectionsReceived")
+  discussions     DiscussionPost[]
+  adminNotesGiven AdminNote[]        @relation("AdminAuthoredNotes")
+  adminNotes      AdminNote[]        @relation("UserTargetNotes")
 
   @@index([referralCode])
 }
 
 model Cohort {
-  id          String   @id @default(uuid())
-  slug        String   @unique
-  name        String
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  id              String   @id @default(uuid())
+  slug            String   @unique
+  name            String
+  tagline         String?
+  heroTitle       String?
+  heroHighlight   String?
+  description     String?
+  accentColor     String?
+  accentHex       String?
+  logoUrl         String?
+  bannerUrl       String?
+  emoji           String?
+  discordLink     String?
+  whatsappLink    String?
+  lumaCalendarUrl String?
+  features        Json?    // Array of {title, description, icon}
+  faqs            Json?    // Array of {question, answer}
+  testimonials    Json?    // Array of {name, role, quote, avatarUrl}
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
 
-  bundles     Bundle[]
+  bundles         Bundle[]
+  subscribers     DomainSubscription[]
 }
 
 model Bundle {
-  id            String   @id @default(uuid())
-  cohortSlug    String   @default("opensource")
-  name          String
-  originalPrice Float
-  eventPrice    Float
-  isDiscounted  Boolean  @default(false)
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
+  id                  String   @id @default(uuid())
+  slug                String   @unique
+  cohortSlug          String
+  name                String
+  tagline             String?
+  originalPrice       Float
+  eventPrice          Float
+  isDiscounted        Boolean  @default(false)
+  isPrimary           Boolean  @default(false)
+  status              String   @default("DRAFT") // DRAFT, PUBLISHED, SOLD_OUT, ARCHIVED
+  difficultyLevel     String?
+  duration            String?
+  startDate           String?
+  schedule            String?
+  registrationDeadline DateTime?
+  maxSeats            Int?
+  seatsLeft           Int?
+  instructorName      String?
+  instructorRole      String?
+  instructorAvatarUrl String?
+  demoVideoUrl        String?
+  certificateIncluded Boolean  @default(true)
+  
+  features            Json?    // Array of Strings
+  highlights          Json?    // Array of Strings
+  curriculum          Json?    // Array of Weekly Modules
+  outcomes            Json?    // Array of Strings
+  prerequisites       Json?    // Array of Strings
+  
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
 
-  cohort        Cohort?  @relation(fields: [cohortSlug], references: [slug])
-  orders        Order[]
+  cohort              Cohort   @relation(fields: [cohortSlug], references: [slug])
+  orders              Order[]
+  enrollments         Enrollment[]
+  leads               Lead[]
+  discussions         DiscussionPost[]
 
   @@index([cohortSlug])
+  @@index([slug])
 }
 
 model Order {
@@ -60,6 +129,10 @@ model Order {
   amount              Float
   paymentMethod       String   // razorpay | qr
   status              String   @default("pending") // pending | paid | failed
+  paymentProofUrl     String?
+  adminNotes          String?
+  verifiedByAdminId   String?
+  productName         String?
   createdAt           DateTime @default(now())
 
   user                User     @relation(fields: [userId], references: [id])
@@ -69,6 +142,59 @@ model Order {
   @@index([bundleId])
 }
 
+model Enrollment {
+  id          String   @id @default(uuid())
+  userId      String
+  bundleId    String
+  status      String   @default("ACTIVE") // ACTIVE, REVOKED, COMPLETED
+  enrolledAt  DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+  bundle      Bundle   @relation(fields: [bundleId], references: [id])
+
+  @@index([userId])
+  @@index([bundleId])
+}
+
+model Lead {
+  id          String   @id @default(uuid())
+  name        String?
+  email       String
+  phone       String?
+  bundleId    String?
+  stepReached String   @default("DETAILS") // DETAILS, PAYMENT
+  createdAt   DateTime @default(now())
+
+  bundle      Bundle?  @relation(fields: [bundleId], references: [id])
+
+  @@index([email])
+}
+
+model AdminNote {
+  id            String   @id @default(uuid())
+  authorId      String
+  targetUserId  String
+  content       String
+  createdAt     DateTime @default(now())
+
+  author        User     @relation("AdminAuthoredNotes", fields: [authorId], references: [id])
+  targetUser    User     @relation("UserTargetNotes", fields: [targetUserId], references: [id])
+
+  @@index([targetUserId])
+}
+
+model CommunicationLog {
+  id          String   @id @default(uuid())
+  userId      String
+  channel     String   // WHATSAPP, EMAIL
+  messageType String   // WELCOME, CART_ABANDONED, PAYMENT_CONFIRMED
+  status      String   // SENT, FAILED
+  errorDetail String?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
 model ReferralClick {
   id            String   @id @default(uuid())
   referralCode  String
@@ -76,4 +202,123 @@ model ReferralClick {
   createdAt     DateTime @default(now())
 
   @@index([referralCode])
+}
+
+model ReferralPayout {
+  id              String   @id @default(uuid())
+  userId          String
+  amountPaid      Float
+  transactionRef  String?
+  paidAt          DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+}
+
+model DomainSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  cohortId  String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+  cohort    Cohort   @relation(fields: [cohortId], references: [id])
+
+  @@unique([userId, cohortId])
+  @@index([userId])
+}
+
+// ═══════════════════════════════════════════════
+// Dashboard 3.0 — New Models
+// ═══════════════════════════════════════════════
+
+model Announcement {
+  id          String    @id @default(uuid())
+  title       String
+  subtitle    String?
+  imageUrl    String
+  ctaLabel    String?
+  ctaLink     String?
+  badge       String?   // NEW, EVENT, WORKSHOP, ANNOUNCEMENT
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+model Achievement {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  name        String
+  description String
+  emoji       String
+  xpReward    Int      @default(10)
+  category    String   // SOCIAL, LEARNING, COMMUNITY
+  condition   Json?    // {"type":"referrals","count":1}
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  unlocks     UserAchievement[]
+}
+
+model UserAchievement {
+  id            String      @id @default(uuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime    @default(now())
+
+  user          User        @relation(fields: [userId], references: [id])
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+}
+
+model Resource {
+  id            String   @id @default(uuid())
+  title         String
+  description   String?
+  type          String   // CHEATSHEET, ROADMAP, TEMPLATE, RECORDING, LINK
+  fileUrl       String
+  thumbnailUrl  String?
+  cohortSlug    String?  // null = general
+  isPremium     Boolean  @default(false)
+  isApproved    Boolean  @default(true) // false = pending review (student uploads)
+  uploadedBy    String?  // userId of uploader (null = admin)
+  downloadCount Int      @default(0)
+  sortOrder     Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+}
+
+model Connection {
+  id          String   @id @default(uuid())
+  fromUserId  String
+  toUserId    String
+  status      String   @default("PENDING") // PENDING, ACCEPTED, DECLINED
+  createdAt   DateTime @default(now())
+
+  fromUser    User     @relation("ConnectionsSent", fields: [fromUserId], references: [id])
+  toUser      User     @relation("ConnectionsReceived", fields: [toUserId], references: [id])
+
+  @@unique([fromUserId, toUserId])
+  @@index([toUserId])
+}
+
+model DiscussionPost {
+  id          String   @id @default(uuid())
+  bundleId    String
+  userId      String
+  content     String
+  parentId    String?
+  isReported  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  bundle      Bundle          @relation(fields: [bundleId], references: [id])
+  user        User            @relation(fields: [userId], references: [id])
+  parent      DiscussionPost? @relation("Replies", fields: [parentId], references: [id])
+  replies     DiscussionPost[] @relation("Replies")
+
+  @@index([bundleId])
+  @@index([userId])
 }

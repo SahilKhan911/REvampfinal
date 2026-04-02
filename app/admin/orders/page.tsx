@@ -5,7 +5,10 @@ import {
   Check,
   Clock,
   Loader2,
-  ChevronLeft
+  ChevronLeft,
+  Image as ImageIcon,
+  X,
+  Eye,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -16,6 +19,7 @@ const COHORT_OPTIONS = [
   { slug: "aiml", label: "🤖 AI" },
   { slug: "launchpad", label: "🚀 Launch" },
   { slug: "cp", label: "⚔️ CP" },
+  { slug: "cybersec", label: "🛡️ Cyber" },
 ]
 
 export default function OrdersPage() {
@@ -23,6 +27,7 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState<string | null>(null)
   const [cohortFilter, setCohortFilter] = useState("")
+  const [proofModal, setProofModal] = useState<string | null>(null)
 
   const fetchOrders = (cohort?: string) => {
     const url = cohort ? `/api/admin/orders?cohort=${cohort}` : "/api/admin/orders"
@@ -56,15 +61,45 @@ export default function OrdersPage() {
 
   if (loading) return null
 
+  const pendingCount = orders.filter((o: any) => o.status === "pending").length
+
   return (
     <div className="min-h-screen bg-black text-white p-8">
+      {/* Payment Proof Modal */}
+      {proofModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setProofModal(null)}>
+          <div className="relative max-w-2xl max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setProofModal(null)}
+              className="absolute -top-3 -right-3 bg-white/10 hover:bg-white/20 p-2 rounded-full transition-all z-10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <img
+              src={proofModal}
+              alt="Payment proof"
+              className="max-h-[85vh] w-auto rounded-2xl border border-white/10 shadow-2xl"
+            />
+          </div>
+        </div>
+      )}
+
       <div className="mb-8">
         <Link href="/admin/dashboard" className="inline-flex items-center text-gray-500 hover:text-white transition-all text-sm mb-4">
           <ChevronLeft className="w-4 h-4 mr-1" />
           Back to Dashboard
         </Link>
-        <h1 className="text-3xl font-bold">Orders Management</h1>
-        <p className="text-gray-500 text-sm">Approve manual payments and track sales</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Orders Management</h1>
+            <p className="text-gray-500 text-sm">Approve manual payments and track sales</p>
+          </div>
+          {pendingCount > 0 && (
+            <div className="px-4 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
+              <span className="text-yellow-500 text-sm font-bold">{pendingCount} pending approval{pendingCount > 1 ? "s" : ""}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Cohort Filter */}
@@ -93,6 +128,7 @@ export default function OrdersPage() {
               <th className="p-4">Cohort</th>
               <th className="p-4">Method</th>
               <th className="p-4">Amount</th>
+              <th className="p-4">Proof</th>
               <th className="p-4">Status</th>
               <th className="p-4">Actions</th>
             </tr>
@@ -107,7 +143,7 @@ export default function OrdersPage() {
                 </td>
                 <td className="p-4">
                   <span className="px-2 py-1 bg-white/5 rounded text-xs font-medium">
-                    {order.bundle?.name}
+                    {order.bundle?.name || order.productName || "—"}
                   </span>
                 </td>
                 <td className="p-4">
@@ -117,6 +153,21 @@ export default function OrdersPage() {
                 </td>
                 <td className="p-4 capitalize">{order.paymentMethod}</td>
                 <td className="p-4 font-bold text-blue-400">₹{order.amount}</td>
+                <td className="p-4">
+                  {order.paymentProofUrl ? (
+                    <button
+                      onClick={() => setProofModal(order.paymentProofUrl)}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 rounded-lg transition-all text-xs font-bold"
+                    >
+                      <Eye className="w-3 h-3" />
+                      View Proof
+                    </button>
+                  ) : order.razorpayPaymentId ? (
+                    <span className="text-xs text-gray-500 font-mono">{order.razorpayPaymentId.slice(0, 12)}…</span>
+                  ) : (
+                    <span className="text-xs text-gray-600">No proof</span>
+                  )}
+                </td>
                 <td className="p-4">
                   {order.status === "paid" ? (
                     <span className="flex items-center text-green-500 text-xs font-bold uppercase">
@@ -129,7 +180,7 @@ export default function OrdersPage() {
                   )}
                 </td>
                 <td className="p-4">
-                  {order.status === "pending" && order.paymentMethod === "qr" && (
+                  {order.status === "pending" && (order.paymentMethod === "qr" || order.paymentMethod === "upi") && (
                     <button
                       onClick={() => handleApprove(order.id)}
                       disabled={processing === order.id}
