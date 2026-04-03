@@ -5,12 +5,8 @@ import { sendPaymentConfirmationEmail, sendReferralEarningEmail } from '@/lib/em
 
 export const dynamic = 'force-dynamic'
 
-// Referral earning per bundle
-const REFERRAL_EARNINGS: Record<string, number> = {
-  'gsoc-intensive': 200,
-  'opensource-starter': 100,
-  'opensource-specific': 200,
-}
+// Default referral earning per approved order (flat rate)
+const DEFAULT_REFERRAL_EARNING = 200
 
 export async function GET(req: NextRequest) {
   const admin = await adminAuth(req)
@@ -132,7 +128,7 @@ export async function PATCH(req: NextRequest) {
           .single()
 
         if (referrer) {
-          const earning = REFERRAL_EARNINGS[order.bundleId] || 200
+          const earning = DEFAULT_REFERRAL_EARNING
           const newTotalReferrals = (referrer.totalReferrals || 0) + 1
 
           // Update referrer's stats

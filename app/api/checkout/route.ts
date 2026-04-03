@@ -120,71 +120,103 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Workshop not found. Please go back and try again.' }, { status: 400 })
     }
 
-    // Verify Applied Balance if present
+    // Cap referral balance at 50% of bundle price
+    const maxReferralDiscount = Math.floor((bundleRecord?.eventPrice || amount) * 0.5)
+    if (appliedBalance > maxReferralDiscount) {
+      appliedBalance = maxReferralDiscount
+    }
+
+    // Atomic balance check + order creation + deduction inside a serializable transaction
+    // This prevents double-spend race conditions from concurrent requests
+    let order: any
+    const orderId = crypto.randomUUID()
+
     if (appliedBalance > 0) {
-      const userWithRefs = await prisma.user.findUnique({
-        where: { id: userId },
-      });
-      if (!userWithRefs) return NextResponse.json({ error: 'User not found' }, { status: 400 });
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        order = await (prisma.$transaction as any)(async (tx: any) => {
+          // 1. Calculate available balance inside the transaction
+          const payouts = await tx.referralPayout.findMany({ where: { userId } })
+          const earned = payouts.reduce((sum: number, p: any) => sum + (p.amountPaid || 0), 0)
 
-      // Calculate earned from ReferralPayout table
-      const payouts = await prisma.referralPayout.findMany({
-        where: { userId: userId }
-      });
-      const earned = payouts.reduce((sum, p) => sum + (p.amountPaid || 0), 0);
+          const redemptions = await tx.redemptionRequest.findMany({
+            where: { userId, status: { not: 'REJECTED' } }
+          })
+          const redeemed = redemptions.reduce((sum: number, r: { amount: number }) => sum + r.amount, 0)
+          const available = earned - redeemed
 
-      // Calculate redeemed from RedemptionRequest table
-      const redemptions = await prisma.redemptionRequest.findMany({
-        where: { userId: userId, status: { not: 'REJECTED' } }
-      });
-      const redeemed = redemptions.reduce((sum, r) => sum + r.amount, 0);
+          if (appliedBalance > available) {
+            throw new Error('INSUFFICIENT_BALANCE')
+          }
 
-      const available = earned - redeemed;
+          // Re-apply the 50% cap (defense in depth)
+          const cappedBalance = Math.min(appliedBalance, maxReferralDiscount, available)
+          const finalAmt = Math.max(0, amount - cappedBalance)
 
-      if (appliedBalance > available) {
-        return NextResponse.json({ error: 'Insufficient referral balance' }, { status: 400 })
-      }
-    }
+          // 2. Create order
+          const newOrder = await tx.order.create({
+            data: {
+              id: orderId,
+              userId,
+              bundleId: bundleId!,
+              amount: finalAmt,
+              paymentMethod: finalAmt > 0 ? 'upi' : 'referral_balance',
+              status: finalAmt > 0 ? 'pending' : 'paid',
+              productName: productLabel,
+              razorpayPaymentId: transactionId || null,
+              paymentProofUrl,
+            }
+          })
 
-    const finalAmount = Math.max(0, amount - appliedBalance);
+          // 3. Deduct balance atomically
+          await tx.redemptionRequest.create({
+            data: {
+              id: crypto.randomUUID(),
+              userId,
+              amount: cappedBalance,
+              upiId: `WORKSHOP_PURCHASE:${orderId}`,
+              status: 'PAID',
+              adminNote: `Applied to order for ${bundleRecord?.name || 'Workshop'}`
+            }
+          })
 
-    // Create Order — generate id manually because Supabase client bypasses Prisma defaults
-    const orderId = crypto.randomUUID();
-    const orderData: any = {
-      id: orderId,
-      userId: userId,
-      bundleId,
-      amount: finalAmount,
-      paymentMethod: finalAmount > 0 ? 'upi' : (appliedBalance > 0 ? 'referral_balance' : 'free'),
-      status: finalAmount > 0 ? 'pending' : 'paid',
-      productName: productLabel,
-      razorpayPaymentId: transactionId || null,
-      paymentProofUrl,
-    }
-
-    const { data: order, error: orderError } = await supabase
-      .from('Order')
-      .insert(orderData)
-      .select()
-      .single()
-
-    if (orderError) {
-      console.error('Order creation failed:', orderError.message)
-      return NextResponse.json({ error: 'Order creation failed: ' + orderError.message }, { status: 500 })
-    }
-
-    // Capture the balance deduction if applied
-    if (appliedBalance > 0) {
-      await prisma.redemptionRequest.create({
-        data: {
-          id: crypto.randomUUID(),
-          userId: user.id,
-          amount: appliedBalance,
-          upiId: `WORKSHOP_PURCHASE:${orderId}`,
-          status: 'PAID',
-          adminNote: `Applied to order for ${bundleRecord?.name || 'Workshop'}`
+          return newOrder
+        }, {
+          isolationLevel: 'Serializable',
+          timeout: 10000,
+        })
+      } catch (txError: any) {
+        if (txError.message === 'INSUFFICIENT_BALANCE') {
+          return NextResponse.json({ error: 'Insufficient referral balance' }, { status: 400 })
         }
-      });
+        console.error('Transaction error:', txError)
+        return NextResponse.json({ error: 'Checkout failed. Please try again.' }, { status: 500 })
+      }
+    } else {
+      // No referral balance — simple order creation
+      const finalAmount = Math.max(0, amount)
+
+      const { data: newOrder, error: orderError } = await supabase
+        .from('Order')
+        .insert({
+          id: orderId,
+          userId,
+          bundleId,
+          amount: finalAmount,
+          paymentMethod: finalAmount > 0 ? 'upi' : 'free',
+          status: finalAmount > 0 ? 'pending' : 'paid',
+          productName: productLabel,
+          razorpayPaymentId: transactionId || null,
+          paymentProofUrl,
+        })
+        .select()
+        .single()
+
+      if (orderError) {
+        console.error('Order creation failed:', orderError.message)
+        return NextResponse.json({ error: 'Order creation failed: ' + orderError.message }, { status: 500 })
+      }
+      order = newOrder
     }
 
     // Update Lead
@@ -193,7 +225,8 @@ export async function POST(req: NextRequest) {
       .eq('email', user.email)
 
     // Auto-create Enrollment for free or fully balance-covered registrations
-    if (finalAmount === 0 && bundleId) {
+    const orderAmount = order?.amount ?? amount
+    if (orderAmount === 0 && bundleId) {
       await supabase.from('Enrollment').insert({
         id: crypto.randomUUID(),
         userId: user.id,
@@ -203,7 +236,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Send order confirmation email + achievement check (non-blocking)
-    sendOrderConfirmationEmail(user.email, user.name, productLabel, finalAmount).catch(() => {})
+    sendOrderConfirmationEmail(user.email, user.name, productLabel, orderAmount).catch(() => {})
     checkAndGrantAchievements(user.id).catch(() => {})
 
     // Note: Referral tracking happens on admin approval (admin/orders PATCH),
