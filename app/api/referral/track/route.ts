@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
     await supabase
       .from('ReferralClick')
       .insert({
+        id: crypto.randomUUID(),
         referralCode,
         visitorIp: ip,
       })

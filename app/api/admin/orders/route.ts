@@ -88,6 +88,7 @@ export async function PATCH(req: NextRequest) {
       // 1b. Auto-create Enrollment
       if (order.bundleId && order.userId) {
         const { error: enrollErr } = await supabase.from('Enrollment').insert({
+          id: crypto.randomUUID(),
           userId: order.userId,
           bundleId: order.bundleId,
           status: 'ACTIVE',
@@ -137,6 +138,7 @@ export async function PATCH(req: NextRequest) {
 
           // Record the payout
           await supabase.from('ReferralPayout').insert({
+            id: crypto.randomUUID(),
             userId: referrer.id,
             amountPaid: earning,
             transactionRef: `order_${orderId}`,

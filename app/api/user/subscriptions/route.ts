@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
 
   const { error } = await supabase
     .from('DomainSubscription')
-    .insert({ userId, cohortId })
+    .insert({ id: crypto.randomUUID(), userId, cohortId })
 
   if (error) {
     console.error('Subscription error:', error)

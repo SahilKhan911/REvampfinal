@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: `Connection already ${existing.status.toLowerCase()}` })
   }
 
-  await supabase.from('Connection').insert({ fromUserId: userId, toUserId })
+  await supabase.from('Connection').insert({ id: crypto.randomUUID(), fromUserId: userId, toUserId })
 
   return NextResponse.json({ success: true, message: 'Connection request sent' })
 }

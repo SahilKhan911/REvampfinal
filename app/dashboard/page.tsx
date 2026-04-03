@@ -3,25 +3,95 @@
 import { useEffect, useState, useCallback, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import NewsCarousel from "@/app/components/NewsCarousel"
 
 type Tab = "home" | "learning" | "orders" | "referrals" | "domains" | "achievements" | "resources" | "connections" | "settings"
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: "home", label: "Home", icon: "home" },
-  { id: "learning", label: "My Learning", icon: "school" },
-  { id: "connections", label: "Connections", icon: "people" },
-  { id: "orders", label: "Orders", icon: "receipt_long" },
-  { id: "referrals", label: "Referrals", icon: "group_add" },
-  { id: "domains", label: "Domains", icon: "interests" },
+  { id: "home",         label: "Home",         icon: "home" },
+  { id: "learning",     label: "My Learning",  icon: "school" },
+  { id: "connections",  label: "Connections",  icon: "people" },
+  { id: "orders",       label: "Orders",       icon: "receipt_long" },
+  { id: "referrals",    label: "Referrals",    icon: "group_add" },
+  { id: "domains",      label: "Domains",      icon: "interests" },
   { id: "achievements", label: "Achievements", icon: "emoji_events" },
-  { id: "resources", label: "Resources", icon: "library_books" },
-  { id: "settings", label: "Settings", icon: "settings" },
+  { id: "resources",    label: "Resources",    icon: "library_books" },
+  { id: "settings",     label: "Settings",     icon: "settings" },
 ]
 
-// Map old tab names for backward compat
 const TAB_ALIASES: Record<string, Tab> = { overview: "home", workshops: "learning" }
 
+// ── helpers ──────────────────────────────────────────
+function Avatar({ name, size = "md", color = "#0085FF" }: { name: string; size?: "sm" | "md" | "lg"; color?: string }) {
+  const initials = name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2)
+  const sz = size === "sm" ? "w-7 h-7 text-[9px]" : size === "lg" ? "w-12 h-12 text-sm" : "w-9 h-9 text-[10px]"
+  return (
+    <div className={`${sz} flex items-center justify-center font-bold text-white shrink-0`} style={{ background: color }}>
+      {initials}
+    </div>
+  )
+}
+
+function XPRing({ progress, level }: { progress: number; level: number }) {
+  const r = 36
+  const circ = 2 * Math.PI * r
+  const offset = circ - (progress / 100) * circ
+  return (
+    <div className="relative w-20 h-20 shrink-0">
+      <svg viewBox="0 0 80 80" className="w-full h-full -rotate-90">
+        <circle cx="40" cy="40" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="5" />
+        <circle cx="40" cy="40" r={r} fill="none" stroke="#0085FF" strokeWidth="5"
+          strokeDasharray={circ} strokeDashoffset={offset}
+          strokeLinecap="butt" style={{ transition: "stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)" }} />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center rotate-0">
+        <span className="font-headline font-black text-xl leading-none">{level}</span>
+        <span className="text-[8px] text-white/30 font-bold uppercase tracking-widest mt-0.5">LVL</span>
+      </div>
+    </div>
+  )
+}
+
+// ── ticker ────────────────────────────────────────────
+function AnnouncementTicker({ items }: { items: any[] }) {
+  if (!items.length) return null
+  const doubled = [...items, ...items]
+  return (
+    <div className="flex items-center h-9 border-b border-white/[0.04] bg-[#0085FF]/[0.04] overflow-hidden">
+      <div className="shrink-0 flex items-center gap-2 px-4 h-full border-r border-white/[0.04] bg-[#0085FF]/10">
+        <span className="w-1.5 h-1.5 bg-[#0085FF] animate-pulse" />
+        <span className="text-[10px] font-black text-[#0085FF] uppercase tracking-[0.15em]">Live</span>
+      </div>
+      <div className="flex-1 overflow-hidden">
+        <div className="animate-marquee whitespace-nowrap">
+          {doubled.map((a: any, i: number) => (
+            <span key={i} className="inline-flex items-center gap-2 mx-8 text-[11px] text-white/40 font-medium">
+              {a.badge && <span className="text-[9px] font-bold text-[#0085FF] uppercase">[{a.badge}]</span>}
+              {a.title}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── status badge ─────────────────────────────────────
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    ACTIVE: "bg-green-500/10 text-green-400 border-green-500/20",
+    COMPLETED: "bg-[#FFD700]/10 text-[#FFD700] border-[#FFD700]/20",
+    paid: "bg-green-500/10 text-green-400 border-green-500/20",
+    pending: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+    failed: "bg-red-500/10 text-red-400 border-red-500/20",
+  }
+  return (
+    <span className={`text-[9px] font-black px-2 py-0.5 border uppercase tracking-wider ${map[status] || "bg-white/5 text-white/30 border-white/10"}`}>
+      {status === "paid" ? "Confirmed" : status}
+    </span>
+  )
+}
+
+// ── main content ─────────────────────────────────────
 function DashboardContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -39,7 +109,6 @@ function DashboardContent() {
   const [followLoading, setFollowLoading] = useState<string | null>(null)
   const [resourceFilter, setResourceFilter] = useState<string>("ALL")
 
-  // Collaboration state
   const [expandedWorkshop, setExpandedWorkshop] = useState<string | null>(null)
   const [workshopPeers, setWorkshopPeers] = useState<Record<string, any[]>>({})
   const [workshopDiscussions, setWorkshopDiscussions] = useState<Record<string, any[]>>({})
@@ -51,7 +120,6 @@ function DashboardContent() {
   const [connectionsLoading, setConnectionsLoading] = useState(false)
   const [connectionActionLoading, setConnectionActionLoading] = useState<string | null>(null)
 
-  // Settings state
   const [settingsForm, setSettingsForm] = useState<any>({})
   const [settingsSaving, setSettingsSaving] = useState(false)
   const [settingsMsg, setSettingsMsg] = useState("")
@@ -107,32 +175,23 @@ function DashboardContent() {
   const handleSubscribe = useCallback(async (cohortId: string) => {
     setFollowLoading(cohortId)
     try {
-      await fetch("/api/user/subscriptions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cohortId }),
-      })
+      await fetch("/api/user/subscriptions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cohortId }) })
       const res = await fetch("/api/user/dashboard").then(r => r.json())
       if (!res.error) setData(res)
-    } catch (e) { console.error("Subscribe error:", e) }
+    } catch (e) { console.error(e) }
     finally { setFollowLoading(null) }
   }, [])
 
   const handleUnsubscribe = useCallback(async (cohortId: string) => {
     setFollowLoading(cohortId)
     try {
-      await fetch("/api/user/subscriptions", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cohortId }),
-      })
+      await fetch("/api/user/subscriptions", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cohortId }) })
       const res = await fetch("/api/user/dashboard").then(r => r.json())
       if (!res.error) setData(res)
-    } catch (e) { console.error("Unsubscribe error:", e) }
+    } catch (e) { console.error(e) }
     finally { setFollowLoading(null) }
   }, [])
 
-  // Collaboration handlers
   const loadPeersAndDiscussions = useCallback(async (bundleId: string) => {
     if (expandedWorkshop === bundleId) { setExpandedWorkshop(null); return }
     setExpandedWorkshop(bundleId)
@@ -149,7 +208,6 @@ function DashboardContent() {
     setConnectingTo(toUserId)
     try {
       await fetch("/api/connections", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ toUserId }) })
-      // Refresh peers for current workshop
       if (expandedWorkshop) {
         const peersRes = await fetch(`/api/workshop/peers?bundleId=${expandedWorkshop}`).then(r => r.json()).catch(() => ({ peers: [] }))
         setWorkshopPeers(prev => ({ ...prev, [expandedWorkshop!]: peersRes.peers || [] }))
@@ -193,7 +251,6 @@ function DashboardContent() {
     finally { setConnectionActionLoading(null) }
   }, [loadConnections])
 
-  // Load connections when tab switches
   useEffect(() => { if (activeTab === "connections") loadConnections() }, [activeTab, loadConnections])
 
   const handleAddSkill = () => {
@@ -214,11 +271,7 @@ function DashboardContent() {
       const payload: any = { ...settingsForm }
       if (payload.graduationYear) payload.graduationYear = parseInt(payload.graduationYear)
       if (!payload.password) delete payload.password
-      const res = await fetch("/api/user/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      }).then(r => r.json())
+      const res = await fetch("/api/user/profile", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(r => r.json())
       if (res.error) setSettingsMsg(res.error)
       else {
         setSettingsMsg("Profile updated successfully!")
@@ -229,10 +282,14 @@ function DashboardContent() {
     finally { setSettingsSaving(false) }
   }
 
+  // ── loading screen ─────────────────────────────────
   if (loading || !data) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
-        <div className="w-8 h-8 border-2 border-[#0085FF] border-t-transparent rounded-full animate-spin" />
+      <div className="flex items-center justify-center min-h-screen bg-[#060606]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-[#0085FF] border-t-transparent rounded-full animate-spin" />
+          <span className="text-white/20 text-xs font-bold uppercase tracking-widest">Loading</span>
+        </div>
       </div>
     )
   }
@@ -244,310 +301,399 @@ function DashboardContent() {
   const initials = user.name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2)
   const unlockedSlugs = new Set((achievements?.unlocked || []).map((a: any) => a.slug))
   const xpProgress = user.nextLevelXp > 0 ? Math.min(100, Math.round((user.xp / user.nextLevelXp) * 100)) : 100
+  const filteredResources = resourceFilter === "ALL" ? resources : resources.filter((r: any) => r.type === resourceFilter)
 
-  const filteredResources = resourceFilter === "ALL"
-    ? resources
-    : resources.filter((r: any) => r.type === resourceFilter)
+  // ── shared input style ─────────────────────────────
+  const inputCls = "w-full bg-[#0a0a0a] border border-white/[0.08] px-3 py-2.5 text-sm text-white placeholder:text-white/15 outline-none focus:border-[#0085FF]/60 transition-colors"
 
   return (
-    <div className="min-h-screen bg-[#060606] text-white font-body flex flex-col">
+    <div className="min-h-screen bg-[#060606] text-white font-body flex">
 
-      {/* ═══ HEADER ═══ */}
-      <header className="flex justify-between items-center w-full px-6 py-3 bg-[#0a0a0a]/90 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
-        <div className="flex items-center gap-5">
-          <Link href="/" className="flex items-center">
-            <img src="https://ik.imagekit.io/cotszrkgk/Screenshot_2025-06-25_at_9.10.56_PM-removebg-preview.png?updatedAt=1756648034230" alt="REvamp" className="h-9 w-auto" />
-          </Link>
-          <div className="hidden md:flex items-center gap-1.5 px-3 py-1 bg-[#0085FF]/10 border border-[#0085FF]/20 rounded-full">
-            <span className="material-symbols-outlined text-[#0085FF] text-xs">dashboard</span>
-            <span className="text-[#0085FF] text-[10px] font-bold uppercase tracking-widest">Dashboard</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <Link href="/" className="hidden md:flex items-center gap-1.5 text-white/30 hover:text-white text-xs transition-colors">
-            <span className="material-symbols-outlined text-sm">explore</span> Browse
-          </Link>
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0085FF] to-[#00c6ff] flex items-center justify-center text-white text-[10px] font-bold shadow-lg shadow-[#0085FF]/20">{initials}</div>
-            <div className="hidden sm:block">
-              <p className="font-bold text-xs text-white/80 leading-none">{user.name.split(" ")[0]}</p>
-              <p className="text-[10px] text-white/30 mt-0.5">Lv.{user.level} {user.levelName}</p>
-            </div>
-          </div>
-          <button onClick={handleLogout} className="material-symbols-outlined text-white/30 hover:text-red-400 transition-colors text-lg" title="Log out">logout</button>
-        </div>
-      </header>
+      {/* ═══════════════════════════════════════ SIDEBAR ═══ */}
+      <aside className="hidden md:flex flex-col w-56 bg-[#080808] border-r border-white/[0.05] fixed left-0 top-0 bottom-0 z-40">
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* ═══ SIDEBAR ═══ */}
-        <aside className="hidden md:flex flex-col w-52 bg-[#0a0a0a] border-r border-white/5 py-5 shrink-0 overflow-y-auto">
-          <nav className="flex flex-col gap-0.5 px-2">
-            {TABS.map((tab) => (
+        {/* Logo */}
+        <div className="flex items-center justify-center py-5 px-4 border-b border-white/[0.05] shrink-0">
+          <Link href="/">
+            <img src="https://ik.imagekit.io/cotszrkgk/Screenshot_2025-06-25_at_9.10.56_PM-removebg-preview.png?updatedAt=1756648034230" alt="REvamp" className="h-20 w-auto" />
+          </Link>
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.id
+            return (
               <button
                 key={tab.id}
                 onClick={() => switchTab(tab.id)}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all text-[13px] font-medium ${
-                  activeTab === tab.id
-                    ? "bg-[#0085FF]/10 text-[#0085FF]"
-                    : "text-white/40 hover:text-white/70 hover:bg-white/[0.03]"
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-[13px] font-medium transition-all relative group ${
+                  isActive
+                    ? "text-[#0085FF] bg-[#0085FF]/[0.07]"
+                    : "text-white/35 hover:text-white/80 hover:bg-white/[0.03]"
                 }`}
               >
-                <span className="material-symbols-outlined text-base" style={activeTab === tab.id ? { fontVariationSettings: "'FILL' 1" } : {}}>{tab.icon}</span>
-                {tab.label}
+                {/* Active indicator bar */}
+                {isActive && <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#0085FF]" />}
+                <span
+                  className="material-symbols-outlined text-[18px] shrink-0"
+                  style={isActive ? { fontVariationSettings: "'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 20" } : {}}
+                >
+                  {tab.icon}
+                </span>
+                <span className="flex-1 text-left">{tab.label}</span>
                 {tab.id === "orders" && pendingOrders > 0 && (
-                  <span className="ml-auto bg-yellow-500 text-black text-[9px] font-bold px-1.5 py-0.5 rounded-full">{pendingOrders}</span>
+                  <span className="w-4 h-4 bg-[#0085FF] text-white text-[8px] font-black flex items-center justify-center shrink-0">
+                    {pendingOrders}
+                  </span>
                 )}
-                {tab.id === "achievements" && (
-                  <span className="ml-auto text-[10px] text-white/20">{achievements?.unlocked?.length || 0}/{achievements?.all?.length || 0}</span>
+                {tab.id === "achievements" && (achievements?.unlocked?.length || 0) > 0 && !isActive && (
+                  <span className="text-[9px] text-white/15 font-mono">
+                    {achievements.unlocked.length}/{achievements?.all?.length || 0}
+                  </span>
                 )}
               </button>
-            ))}
-          </nav>
-          {/* XP mini bar in sidebar */}
-          <div className="mt-auto px-4 pb-4 pt-6 border-t border-white/5 mt-6">
-            <div className="flex justify-between items-center mb-1.5">
-              <span className="text-[10px] text-white/30 uppercase tracking-wider font-bold">Level {user.level}</span>
-              <span className="text-[10px] text-white/20">{user.xp}/{user.nextLevelXp} XP</span>
+            )
+          })}
+        </nav>
+
+        {/* User card */}
+        <div className="shrink-0 px-3 pb-4 pt-3 border-t border-white/[0.05] space-y-3">
+          <div className="flex items-center gap-2.5">
+            <Avatar name={user.name} size="md" color="#0085FF" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold truncate leading-none">{user.name.split(" ")[0]}</p>
+              <p className="text-[10px] text-white/30 mt-0.5">Lv.{user.level} · {user.levelName}</p>
             </div>
-            <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-[#0085FF] to-[#00c6ff] rounded-full transition-all duration-500" style={{ width: `${xpProgress}%` }} />
-            </div>
-            <p className="text-[10px] text-white/20 mt-1">{user.levelName}</p>
+            <button onClick={handleLogout} className="text-white/15 hover:text-red-400 transition-colors shrink-0" title="Log out">
+              <span className="material-symbols-outlined text-[16px]">logout</span>
+            </button>
           </div>
-        </aside>
+          {/* XP strip */}
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-[9px] text-white/20 font-bold uppercase tracking-wider">XP Progress</span>
+              <span className="text-[9px] text-white/20 font-mono">{user.xp}/{user.nextLevelXp}</span>
+            </div>
+            <div className="h-1 bg-white/[0.06] overflow-hidden">
+              <div className="h-full bg-[#0085FF] transition-all duration-1000" style={{ width: `${xpProgress}%` }} />
+            </div>
+          </div>
+        </div>
+      </aside>
 
-        {/* ═══ MAIN CONTENT ═══ */}
-        <main className="flex-1 overflow-y-auto pb-32 md:pb-10">
+      {/* ═══════════════════════════════════════ MAIN ═══ */}
+      <div className="flex-1 md:ml-56 flex flex-col min-h-screen">
 
-          {/* ─── HOME TAB ─── */}
+        {/* Header */}
+        <header className="sticky top-0 z-30 flex items-center justify-between h-14 px-5 md:px-8 bg-[#060606]/95 backdrop-blur-xl border-b border-white/[0.05] shrink-0">
+          {/* Left: mobile logo + breadcrumb */}
+          <div className="flex items-center gap-4">
+            <Link href="/" className="md:hidden">
+              <img src="https://ik.imagekit.io/cotszrkgk/Screenshot_2025-06-25_at_9.10.56_PM-removebg-preview.png?updatedAt=1756648034230" alt="REvamp" className="h-7 w-auto" />
+            </Link>
+            <div className="hidden md:flex items-center gap-2 text-[11px]">
+              <span className="text-white/20">Dashboard</span>
+              <span className="text-white/[0.08]">/</span>
+              <span className="text-white/50 font-medium capitalize">{activeTab.replace("-", " ")}</span>
+            </div>
+          </div>
+          {/* Right */}
+          <div className="flex items-center gap-3">
+            <Link href="/domains" className="hidden md:flex items-center gap-1.5 text-[11px] text-white/25 hover:text-white/70 transition-colors">
+              <span className="material-symbols-outlined text-sm">explore</span>
+              Browse
+            </Link>
+            {pendingOrders > 0 && (
+              <button onClick={() => switchTab("orders")} className="relative p-1 text-white/30 hover:text-white transition-colors">
+                <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>notifications</span>
+                <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-[#0085FF] text-[7px] font-black text-white flex items-center justify-center">{pendingOrders}</span>
+              </button>
+            )}
+            <button onClick={() => switchTab("settings")} className="w-8 h-8 bg-[#0085FF] flex items-center justify-center text-white text-[10px] font-bold hover:bg-[#0070DD] transition-colors">
+              {initials}
+            </button>
+          </div>
+        </header>
+
+        {/* Content */}
+        <main className="flex-1 overflow-y-auto pb-20 md:pb-8">
+
+          {/* ─────────────────────────────── HOME TAB ─── */}
           {activeTab === "home" && (
             <div className="animate-in fade-in duration-300">
-              {/* News Carousel */}
-              <div className="px-6 md:px-8 pt-6">
-                <NewsCarousel items={announcements} />
+
+              {/* Hero */}
+              <div className="relative border-b border-white/[0.05] overflow-hidden">
+                {/* Dot grid bg */}
+                <div className="absolute inset-0 brutalist-grid opacity-40 pointer-events-none" />
+                {/* Blue glow top-right */}
+                <div className="absolute -top-20 -right-20 w-64 h-64 bg-[#0085FF]/[0.07] blur-3xl pointer-events-none" />
+
+                <div className="relative flex items-center justify-between gap-6 px-6 md:px-8 py-8">
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="w-1.5 h-1.5 bg-green-400 animate-pulse" />
+                      <span className="text-[10px] text-white/25 font-bold uppercase tracking-[0.15em]">Active</span>
+                    </div>
+                    <h1 className="font-headline font-black text-5xl md:text-6xl tracking-tight leading-none">
+                      {user.name.split(" ")[0]}<span className="text-[#0085FF]">.</span>
+                    </h1>
+                    <div className="flex items-center gap-2.5 mt-3 mb-4">
+                      <span className="bg-[#0085FF] text-white text-[9px] font-black px-2 py-0.5 uppercase tracking-widest">Level {user.level}</span>
+                      <span className="text-white/35 text-sm font-medium">{user.levelName}</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2 text-[11px] text-white/25">
+                        <span>{user.xp} XP</span>
+                        <span className="text-white/[0.08]">·</span>
+                        <span>{user.nextLevelXp - user.xp} XP to next level</span>
+                      </div>
+                      <div className="relative h-1 bg-white/[0.06] w-48 md:w-64 overflow-hidden">
+                        <div className="h-full bg-[#0085FF] transition-all duration-1000 relative" style={{ width: `${xpProgress}%` }}>
+                          <div className="absolute inset-0 animate-shimmer" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <XPRing progress={xpProgress} level={user.level} />
+                </div>
               </div>
 
-              <div className="px-6 md:px-8 py-6 space-y-8 max-w-6xl">
-                {/* Welcome */}
-                <div>
-                  <h1 className="font-headline font-black text-3xl md:text-4xl tracking-tight">Welcome back, {user.name.split(" ")[0]}.</h1>
-                  <p className="text-white/40 text-sm mt-1">Your command center. Level {user.level} {user.levelName} · {user.xp} XP</p>
-                </div>
+              {/* Announcement ticker */}
+              <AnnouncementTicker items={announcements} />
 
-                {/* Stats row */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {[
-                    { label: "Level", value: user.level, sub: user.levelName, icon: "star", color: "#0085FF", onClick: () => switchTab("achievements") },
-                    { label: "Badges", value: achievements?.unlocked?.length || 0, sub: `of ${achievements?.all?.length || 0}`, icon: "emoji_events", color: "#FFD700", onClick: () => switchTab("achievements") },
-                    { label: "Enrolled", value: (enrollments || []).length, sub: "workshops", icon: "school", color: "#8b5cf6", onClick: () => switchTab("learning") },
-                    { label: "Referrals", value: user.totalReferrals, sub: `₹${totalEarnings} earned`, icon: "group_add", color: "#4ade80", onClick: () => switchTab("referrals") },
-                  ].map((stat, i) => (
-                    <button key={i} onClick={stat.onClick} className="bg-[#0e0e0e] border border-white/5 rounded-xl p-4 hover:border-white/10 transition-all text-left group">
-                      <div className="flex justify-between items-start mb-3">
-                        <span className="text-white/30 text-[10px] font-bold uppercase tracking-widest">{stat.label}</span>
-                        <span className="material-symbols-outlined text-base transition-transform group-hover:scale-110" style={{ color: stat.color }}>{stat.icon}</span>
-                      </div>
-                      <div className="font-headline font-black text-2xl">{stat.value}</div>
-                      <p className="text-white/20 text-[11px] mt-0.5">{stat.sub}</p>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Following domains */}
-                {(subscriptions || []).length > 0 && (
-                  <div>
-                    <div className="flex justify-between items-center mb-3">
-                      <h2 className="font-headline font-bold text-base flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[#0085FF] text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>interests</span> Your Domains
-                      </h2>
-                      <button onClick={() => switchTab("domains")} className="text-[#0085FF] text-xs hover:underline">Manage →</button>
+              {/* Stats strip */}
+              <div className="grid grid-cols-2 md:grid-cols-4 border-b border-white/[0.05]">
+                {[
+                  { label: "Level",    value: user.level,                         sub: user.levelName,              icon: "star",       color: "#0085FF", tab: "achievements" as Tab },
+                  { label: "Badges",   value: achievements?.unlocked?.length || 0, sub: `of ${achievements?.all?.length || 0}`,  icon: "emoji_events", color: "#FFD700", tab: "achievements" as Tab },
+                  { label: "Enrolled", value: (enrollments || []).length,          sub: "workshops",                 icon: "school",     color: "#8b5cf6", tab: "learning" as Tab },
+                  { label: "Earned",   value: `₹${totalEarnings}`,                sub: `${user.totalReferrals} referrals`, icon: "group_add", color: "#4ade80", tab: "referrals" as Tab },
+                ].map((s, i) => (
+                  <button
+                    key={i}
+                    onClick={() => switchTab(s.tab)}
+                    className="relative p-5 text-left border-r last:border-r-0 border-white/[0.05] hover:bg-white/[0.025] transition-all group overflow-hidden"
+                  >
+                    {/* color accent top border */}
+                    <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: `${s.color}30` }} />
+                    <div className="absolute top-0 left-0 h-[2px] w-0 group-hover:w-full transition-all duration-500" style={{ background: s.color }} />
+                    <div className="flex items-start justify-between mb-3">
+                      <span className="text-[9px] text-white/20 font-black uppercase tracking-[0.15em]">{s.label}</span>
+                      <span className="material-symbols-outlined text-sm transition-transform group-hover:scale-110 duration-200" style={{ color: s.color, fontVariationSettings: "'FILL' 1" }}>{s.icon}</span>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {(subscriptions || []).slice(0, 4).map((sub: any) => {
+                    <div className="font-headline font-black text-3xl leading-none mb-1">{s.value}</div>
+                    <p className="text-white/20 text-[10px]">{s.sub}</p>
+                  </button>
+                ))}
+              </div>
+
+              {/* Main grid */}
+              <div className="px-6 md:px-8 py-6 max-w-7xl space-y-8">
+
+                {/* Followed domains */}
+                {(subscriptions || []).length > 0 && (
+                  <section>
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="font-headline font-bold text-sm flex items-center gap-2 text-white/70 uppercase tracking-wider">
+                        <span className="material-symbols-outlined text-[#0085FF] text-base" style={{ fontVariationSettings: "'FILL' 1" }}>interests</span>
+                        Your Domains
+                      </h2>
+                      <button onClick={() => switchTab("domains")} className="text-[#0085FF] text-[11px] font-bold hover:underline">Manage →</button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {(subscriptions || []).slice(0, 3).map((sub: any) => {
                         const cohort = sub.cohort
-                        const latestBundle = allCohorts.find((c: any) => c.id === cohort?.id)?.bundles?.[0]
+                        const cohortFull = allCohorts.find((c: any) => c.id === cohort?.id)
                         return (
-                          <Link key={sub.id} href={`/cohort/${cohort?.slug}`} className="bg-[#0e0e0e] border border-white/5 rounded-xl p-4 hover:border-white/10 transition-all group" style={{ borderLeftColor: cohort?.accentHex || '#0085FF', borderLeftWidth: 3 }}>
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-lg">{cohort?.emoji}</span>
-                                  <h3 className="font-headline font-bold text-sm group-hover:text-[#0085FF] transition-colors">{cohort?.name}</h3>
-                                </div>
-                                {latestBundle && (
-                                  <p className="text-white/40 text-xs">Latest: {latestBundle.name}</p>
-                                )}
-                                <p className="text-white/20 text-[10px] mt-1">{allCohorts.find((c: any) => c.id === cohort?.id)?.bundles?.length || 0} workshops</p>
-                              </div>
-                              <span className="text-[10px] bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-0.5 rounded-full font-bold">Following</span>
+                          <Link
+                            key={sub.id}
+                            href={`/cohort/${cohort?.slug}`}
+                            className="group bg-[#0d0d0d] border border-white/[0.06] hover:border-white/10 p-4 transition-all relative overflow-hidden"
+                            style={{ borderLeft: `3px solid ${cohort?.accentHex || "#0085FF"}` }}
+                          >
+                            <div className="absolute bottom-0 left-0 h-px w-0 group-hover:w-full transition-all duration-500" style={{ background: `${cohort?.accentHex || "#0085FF"}40` }} />
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-lg">{cohort?.emoji}</span>
+                              <h3 className="font-headline font-bold text-sm group-hover:text-white transition-colors">{cohort?.name}</h3>
+                              <span className="ml-auto text-[8px] bg-green-500/10 text-green-400 border border-green-500/20 px-1.5 py-0.5 font-black">ON</span>
                             </div>
+                            <p className="text-white/25 text-[10px]">{cohortFull?.bundles?.length || 0} workshops available</p>
                           </Link>
                         )
                       })}
                     </div>
-                  </div>
+                  </section>
                 )}
 
-                {/* Active enrollments */}
-                {(enrollments || []).length > 0 && (
-                  <div>
-                    <div className="flex justify-between items-center mb-3">
-                      <h2 className="font-headline font-bold text-base flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[#8b5cf6] text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>school</span> Active Workshops
+                {/* Active enrollments + quick actions */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                  {/* Active workshops */}
+                  <section>
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="font-headline font-bold text-sm text-white/70 uppercase tracking-wider flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[#8b5cf6] text-base" style={{ fontVariationSettings: "'FILL' 1" }}>school</span>
+                        Active Workshops
                       </h2>
-                      <button onClick={() => switchTab("learning")} className="text-[#0085FF] text-xs hover:underline">View All →</button>
+                      <button onClick={() => switchTab("learning")} className="text-[#0085FF] text-[11px] font-bold hover:underline">All →</button>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {(enrollments || []).slice(0, 2).map((en: any) => (
-                        <div key={en.id} className="bg-[#0e0e0e] border border-white/5 rounded-xl p-4 hover:border-white/10 transition-all group">
-                          <p className="text-[10px] text-white/30 uppercase tracking-wider mb-1">{en.bundle?.cohort?.emoji} {en.bundle?.cohort?.name}</p>
-                          <h3 className="font-headline font-bold text-sm group-hover:text-[#0085FF] transition-colors">{en.bundle?.name}</h3>
-                          <div className="flex items-center justify-between mt-2">
-                            <span className="text-white/30 text-xs">{en.bundle?.duration}</span>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${en.status === "ACTIVE" ? "bg-green-500/10 text-green-400" : "bg-white/5 text-white/30"}`}>{en.status}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Quick actions + leaderboard */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Quick actions */}
-                  <div className="space-y-3">
-                    <h2 className="font-headline font-bold text-base flex items-center gap-2">
-                      <span className="material-symbols-outlined text-white/40 text-lg">bolt</span> Quick Actions
-                    </h2>
-                    <Link href="/domains" className="flex items-center gap-3 p-4 bg-[#0e0e0e] border border-white/5 rounded-xl hover:border-[#0085FF]/30 transition-all group">
-                      <div className="w-10 h-10 bg-[#0085FF]/10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <span className="material-symbols-outlined text-[#0085FF] text-lg">explore</span>
+                    {(enrollments || []).length === 0 ? (
+                      <div className="bg-[#0d0d0d] border border-dashed border-white/[0.06] p-8 text-center">
+                        <span className="material-symbols-outlined text-3xl text-white/10 block mb-2">school</span>
+                        <p className="text-white/25 text-xs mb-3">No active workshops yet.</p>
+                        <Link href="/domains" className="text-[#0085FF] text-xs font-bold hover:underline">Browse Workshops →</Link>
                       </div>
-                      <div><h3 className="font-bold text-xs">Browse Workshops</h3><p className="text-white/30 text-[10px]">Explore all domains</p></div>
-                    </Link>
-                    {isRealCode && (
-                      <button onClick={copyLink} className="flex items-center gap-3 p-4 bg-[#0e0e0e] border border-white/5 rounded-xl hover:border-[#FFD700]/30 transition-all group w-full text-left">
-                        <div className="w-10 h-10 bg-[#FFD700]/10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                          <span className="material-symbols-outlined text-[#FFD700] text-lg">share</span>
-                        </div>
-                        <div><h3 className="font-bold text-xs">{copied ? "Copied! ✓" : "Share Referral Link"}</h3><p className="text-white/30 text-[10px]">Earn ₹100-200 per referral</p></div>
-                      </button>
-                    )}
-                    <button onClick={() => switchTab("resources")} className="flex items-center gap-3 p-4 bg-[#0e0e0e] border border-white/5 rounded-xl hover:border-purple-500/30 transition-all group w-full text-left">
-                      <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <span className="material-symbols-outlined text-purple-400 text-lg">library_books</span>
-                      </div>
-                      <div><h3 className="font-bold text-xs">Free Resources</h3><p className="text-white/30 text-[10px]">Cheatsheets, roadmaps, templates</p></div>
-                    </button>
-                  </div>
-
-                  {/* Leaderboard */}
-                  <div>
-                    <h2 className="font-headline font-bold text-base flex items-center gap-2 mb-3">
-                      <span className="material-symbols-outlined text-[#FFD700] text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>leaderboard</span> Top Referrers
-                    </h2>
-                    <div className="bg-[#0e0e0e] border border-white/5 rounded-xl overflow-hidden">
-                      {leaderboard.length === 0 ? (
-                        <div className="p-6 text-center text-white/20 text-xs">No referrals yet. Be the first!</div>
-                      ) : (
-                        leaderboard.slice(0, 5).map((l: any, i: number) => {
-                          const medals = ["🥇", "🥈", "🥉"]
-                          return (
-                            <div key={i} className={`flex items-center justify-between px-4 py-3 border-b border-white/[0.03] last:border-0 ${l.name?.includes(user.name.split(" ")[0]) ? "bg-[#0085FF]/5" : ""}`}>
-                              <div className="flex items-center gap-3">
-                                <span className="text-sm w-6 text-center">{medals[i] || `${i + 1}.`}</span>
-                                <span className="text-sm font-medium">{l.name}</span>
-                              </div>
-                              <span className="text-white/40 text-xs font-mono">{l.referrals} refs</span>
+                    ) : (
+                      <div className="space-y-2">
+                        {(enrollments || []).slice(0, 3).map((en: any) => (
+                          <div key={en.id} className="bg-[#0d0d0d] border border-white/[0.06] hover:border-white/10 p-4 transition-all flex items-center gap-3 group">
+                            <div className="w-9 h-9 flex items-center justify-center text-lg bg-[#8b5cf6]/10 shrink-0">{en.bundle?.cohort?.emoji}</div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-sm truncate group-hover:text-white transition-colors">{en.bundle?.name}</p>
+                              <p className="text-white/25 text-[10px]">{en.bundle?.cohort?.name} · {en.bundle?.duration}</p>
                             </div>
-                          )
-                        })
-                      )}
+                            <StatusBadge status={en.status} />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+
+                  {/* Quick actions */}
+                  <section>
+                    <h2 className="font-headline font-bold text-sm text-white/70 uppercase tracking-wider flex items-center gap-2 mb-4">
+                      <span className="material-symbols-outlined text-white/30 text-base">bolt</span>
+                      Quick Actions
+                    </h2>
+                    <div className="space-y-2">
+                      {[
+                        { href: "/domains", label: "Browse Workshops", sub: "Explore all domains", icon: "explore", color: "#0085FF", isLink: true },
+                        ...(isRealCode ? [{ onClick: copyLink, label: copied ? "Link copied! ✓" : "Share Referral Link", sub: "Earn ₹100–200 per referral", icon: "share", color: "#FFD700", isLink: false }] : []),
+                        { onClick: () => switchTab("resources"), label: "Free Resources", sub: "Cheatsheets, roadmaps, templates", icon: "library_books", color: "#8b5cf6", isLink: false },
+                        { onClick: () => switchTab("achievements"), label: "View Achievements", sub: `${achievements?.unlocked?.length || 0} of ${achievements?.all?.length || 0} unlocked`, icon: "emoji_events", color: "#FFD700", isLink: false },
+                      ].map((action: any, i) => {
+                        const inner = (
+                          <div className="flex items-center gap-3.5 p-4 bg-[#0d0d0d] border border-white/[0.06] hover:border-white/10 transition-all group w-full text-left">
+                            <div className="w-9 h-9 flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 duration-200" style={{ background: `${action.color}12` }}>
+                              <span className="material-symbols-outlined text-base" style={{ color: action.color }}>{action.icon}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-xs">{action.label}</p>
+                              <p className="text-white/25 text-[10px]">{action.sub}</p>
+                            </div>
+                            <span className="material-symbols-outlined text-white/15 text-sm group-hover:text-white/30 group-hover:translate-x-0.5 transition-all">arrow_forward</span>
+                          </div>
+                        )
+                        return action.isLink
+                          ? <Link key={i} href={action.href}>{inner}</Link>
+                          : <button key={i} onClick={action.onClick} className="w-full">{inner}</button>
+                      })}
                     </div>
-                  </div>
+                  </section>
                 </div>
+
+                {/* Leaderboard */}
+                <section>
+                  <h2 className="font-headline font-bold text-sm text-white/70 uppercase tracking-wider flex items-center gap-2 mb-4">
+                    <span className="material-symbols-outlined text-[#FFD700] text-base" style={{ fontVariationSettings: "'FILL' 1" }}>leaderboard</span>
+                    Top Referrers
+                  </h2>
+                  <div className="bg-[#0d0d0d] border border-white/[0.06] overflow-hidden">
+                    {leaderboard.length === 0 ? (
+                      <div className="p-8 text-center text-white/20 text-xs">No referrals yet — be the first!</div>
+                    ) : leaderboard.slice(0, 5).map((l: any, i: number) => {
+                      const medals = ["🥇", "🥈", "🥉"]
+                      const isMe = l.name?.includes(user.name.split(" ")[0])
+                      return (
+                        <div key={i} className={`flex items-center justify-between px-5 py-3.5 border-b border-white/[0.03] last:border-0 transition-colors ${isMe ? "bg-[#0085FF]/[0.04]" : "hover:bg-white/[0.015]"}`}>
+                          <div className="flex items-center gap-3">
+                            <span className="w-6 text-center text-sm">{medals[i] || <span className="text-white/20 font-mono text-xs">{i + 1}</span>}</span>
+                            <span className={`text-sm font-medium ${isMe ? "text-[#0085FF]" : ""}`}>{l.name}</span>
+                            {isMe && <span className="text-[8px] bg-[#0085FF]/10 text-[#0085FF] px-1.5 py-0.5 font-black uppercase">You</span>}
+                          </div>
+                          <span className="text-white/30 text-xs font-mono">{l.referrals} refs</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </section>
 
               </div>
             </div>
           )}
 
-          {/* ─── MY LEARNING TAB ─── */}
+          {/* ─────────────────────────── MY LEARNING TAB ─── */}
           {activeTab === "learning" && (
-            <div className="max-w-4xl px-6 md:px-8 py-6 space-y-6 animate-in fade-in duration-300">
-              <h1 className="font-headline font-black text-3xl tracking-tight">My Learning</h1>
-              <p className="text-white/40 text-sm -mt-3">Click a workshop to see peers & discussions.</p>
+            <div className="max-w-4xl px-6 md:px-8 py-8 space-y-6 animate-in fade-in duration-300">
+              <div>
+                <h1 className="font-headline font-black text-4xl tracking-tight">My Learning</h1>
+                <p className="text-white/30 text-sm mt-1">Click any workshop to see peers & join discussions.</p>
+              </div>
               {(enrollments || []).length === 0 ? (
-                <div className="text-center py-20 bg-[#0e0e0e] border border-white/5 rounded-xl">
-                  <span className="material-symbols-outlined text-5xl text-white/10 mb-3 block">school</span>
-                  <h2 className="font-headline font-bold text-lg text-white/50 mb-1">No enrollments yet</h2>
-                  <p className="text-white/25 text-sm mb-5">Enroll in a workshop to start your journey.</p>
-                  <Link href="/domains" className="inline-block bg-[#0085FF] text-white px-6 py-2.5 rounded-lg font-bold text-sm hover:bg-[#0070DD]">Browse Workshops →</Link>
+                <div className="text-center py-24 bg-[#0d0d0d] border border-dashed border-white/[0.06]">
+                  <span className="material-symbols-outlined text-5xl text-white/10 mb-4 block">school</span>
+                  <h2 className="font-headline font-bold text-xl text-white/40 mb-2">No enrollments yet</h2>
+                  <p className="text-white/20 text-sm mb-6">Enroll in a workshop to start your journey.</p>
+                  <Link href="/domains" className="inline-block bg-[#0085FF] text-white px-8 py-3 font-bold text-sm hover:bg-[#0070DD] transition-colors">Browse Workshops →</Link>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {(enrollments || []).map((en: any) => {
                     const isExpanded = expandedWorkshop === en.bundle?.id
                     const peers = workshopPeers[en.bundle?.id] || []
                     const discussions = workshopDiscussions[en.bundle?.id] || []
                     return (
-                      <div key={en.id} className={`bg-[#0e0e0e] border rounded-xl transition-all ${isExpanded ? "border-[#0085FF]/30" : "border-white/5 hover:border-white/10"}`}>
-                        {/* Workshop header — clickable */}
+                      <div key={en.id} className={`border transition-all ${isExpanded ? "border-[#0085FF]/25 bg-[#0085FF]/[0.02]" : "border-white/[0.06] bg-[#0d0d0d] hover:border-white/10"}`}>
                         <button onClick={() => loadPeersAndDiscussions(en.bundle?.id)} className="w-full p-5 text-left">
-                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                            <div>
-                              <div className="flex items-center gap-2 mb-1"><span>{en.bundle?.cohort?.emoji}</span><span className="text-[10px] text-white/30 uppercase tracking-wider">{en.bundle?.cohort?.name}</span></div>
-                              <h3 className="font-headline font-bold text-lg">{en.bundle?.name}</h3>
-                              <p className="text-white/30 text-xs mt-1">{en.bundle?.duration} · Enrolled {new Date(en.enrolledAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 flex items-center justify-center text-xl bg-white/[0.03] shrink-0">{en.bundle?.cohort?.emoji}</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <span className="text-[9px] text-white/25 font-bold uppercase tracking-wider">{en.bundle?.cohort?.name}</span>
+                              </div>
+                              <h3 className="font-headline font-bold text-base truncate">{en.bundle?.name}</h3>
+                              <p className="text-white/25 text-[10px] mt-0.5">{en.bundle?.duration} · Enrolled {new Date(en.enrolledAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
                             </div>
-                            <div className="flex items-center gap-3">
-                              <span className={`text-[10px] font-bold px-3 py-1 rounded-full ${en.status === "ACTIVE" ? "bg-green-500/10 text-green-400 border border-green-500/20" : en.status === "COMPLETED" ? "bg-[#FFD700]/10 text-[#FFD700] border border-[#FFD700]/20" : "bg-red-500/10 text-red-400 border border-red-500/20"}`}>{en.status}</span>
-                              <span className={`material-symbols-outlined text-white/20 text-sm transition-transform ${isExpanded ? "rotate-180" : ""}`}>expand_more</span>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <StatusBadge status={en.status} />
+                              <span className={`material-symbols-outlined text-white/20 text-base transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}>expand_more</span>
                             </div>
                           </div>
                         </button>
 
-                        {/* Expanded: Peers + Discussion */}
                         {isExpanded && (
-                          <div className="border-t border-white/5 p-5">
-                            {/* Sub-tabs */}
-                            <div className="flex gap-3 mb-5">
-                              <button onClick={() => setWorkshopSubTab("peers")} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all ${workshopSubTab === "peers" ? "bg-[#0085FF] text-white" : "bg-white/5 text-white/40 hover:text-white/60"}`}>
-                                <span className="material-symbols-outlined text-sm">people</span> Peers ({peers.length})
-                              </button>
-                              <button onClick={() => setWorkshopSubTab("discussion")} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all ${workshopSubTab === "discussion" ? "bg-[#0085FF] text-white" : "bg-white/5 text-white/40 hover:text-white/60"}`}>
-                                <span className="material-symbols-outlined text-sm">forum</span> Discussion ({discussions.length})
-                              </button>
+                          <div className="border-t border-white/[0.05] p-5 animate-in fade-in duration-200">
+                            <div className="flex gap-2 mb-5">
+                              {(["peers", "discussion"] as const).map(sub => (
+                                <button key={sub} onClick={() => setWorkshopSubTab(sub)} className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold transition-all capitalize ${workshopSubTab === sub ? "bg-[#0085FF] text-white" : "bg-white/[0.04] text-white/35 hover:text-white/60"}`}>
+                                  <span className="material-symbols-outlined text-sm">{sub === "peers" ? "people" : "forum"}</span>
+                                  {sub} ({sub === "peers" ? peers.length : discussions.length})
+                                </button>
+                              ))}
                             </div>
 
-                            {/* ── PEERS VIEW ── */}
                             {workshopSubTab === "peers" && (
                               <div>
                                 {peers.length === 0 ? (
-                                  <p className="text-white/20 text-sm text-center py-8">No other peers enrolled yet. Share the workshop!</p>
+                                  <p className="text-white/20 text-sm text-center py-8">No other peers enrolled yet.</p>
                                 ) : (
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                                     {peers.map((peer: any) => (
-                                      <div key={peer.id} className="bg-black/30 border border-white/5 rounded-xl p-4 flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                                          {peer.name?.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
-                                        </div>
+                                      <div key={peer.id} className="bg-black/30 border border-white/[0.05] p-3.5 flex items-center gap-3">
+                                        <Avatar name={peer.name || "?"} size="md" color="#0085FF" />
                                         <div className="flex-1 min-w-0">
                                           <p className="font-bold text-sm truncate">{peer.name}</p>
-                                          <p className="text-white/25 text-[10px]">{peer.college || "Student"} · Lv.{peer.level || 1}</p>
-                                          {peer.githubUrl && (
-                                            <a href={peer.githubUrl} target="_blank" rel="noopener noreferrer" className="text-[#0085FF] text-[10px] hover:underline">GitHub →</a>
-                                          )}
+                                          <p className="text-white/20 text-[10px]">{peer.college || "Student"} · Lv.{peer.level || 1}</p>
+                                          {peer.githubUrl && <a href={peer.githubUrl} target="_blank" rel="noopener noreferrer" className="text-[#0085FF] text-[10px] hover:underline">GitHub →</a>}
                                         </div>
                                         {peer.connectionStatus === "ACCEPTED" ? (
-                                          <span className="text-[10px] bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-1 rounded-full font-bold">Connected</span>
+                                          <span className="text-[9px] bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-0.5 font-black">Connected</span>
                                         ) : peer.connectionStatus === "PENDING" ? (
-                                          <span className="text-[10px] bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-2 py-1 rounded-full font-bold">Pending</span>
+                                          <span className="text-[9px] bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-2 py-0.5 font-black">Pending</span>
                                         ) : (
-                                          <button
-                                            onClick={() => handleConnect(peer.id)}
-                                            disabled={connectingTo === peer.id}
-                                            className="bg-[#0085FF] text-white text-[10px] font-bold px-3 py-1.5 rounded-lg hover:bg-[#0070DD] transition-all disabled:opacity-50"
-                                          >
+                                          <button onClick={() => handleConnect(peer.id)} disabled={connectingTo === peer.id} className="bg-[#0085FF] text-white text-[10px] font-bold px-3 py-1.5 hover:bg-[#0070DD] transition-colors disabled:opacity-50">
                                             {connectingTo === peer.id ? "..." : "Connect"}
                                           </button>
                                         )}
@@ -558,10 +704,8 @@ function DashboardContent() {
                               </div>
                             )}
 
-                            {/* ── DISCUSSION VIEW ── */}
                             {workshopSubTab === "discussion" && (
                               <div>
-                                {/* Post input */}
                                 <div className="flex gap-2 mb-4">
                                   <input
                                     type="text"
@@ -569,28 +713,19 @@ function DashboardContent() {
                                     onChange={e => setDiscussionInput(prev => ({ ...prev, [en.bundle?.id]: e.target.value }))}
                                     onKeyDown={e => e.key === "Enter" && handlePostDiscussion(en.bundle?.id)}
                                     placeholder="Share something with your peers..."
-                                    className="flex-1 bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-[#0085FF] transition-colors"
+                                    className="flex-1 bg-black/40 border border-white/[0.08] px-4 py-2.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-[#0085FF]/60 transition-colors"
                                   />
-                                  <button
-                                    onClick={() => handlePostDiscussion(en.bundle?.id)}
-                                    disabled={postingDiscussion || !discussionInput[en.bundle?.id]?.trim()}
-                                    className="bg-[#0085FF] text-white px-4 py-2.5 rounded-lg font-bold text-sm hover:bg-[#0070DD] transition-all disabled:opacity-30"
-                                  >
-                                    Post
-                                  </button>
+                                  <button onClick={() => handlePostDiscussion(en.bundle?.id)} disabled={postingDiscussion || !discussionInput[en.bundle?.id]?.trim()} className="bg-[#0085FF] text-white px-4 py-2.5 font-bold text-sm hover:bg-[#0070DD] transition-colors disabled:opacity-30">Post</button>
                                 </div>
-
                                 {discussions.length === 0 ? (
                                   <p className="text-white/20 text-sm text-center py-8">No posts yet. Start the conversation!</p>
                                 ) : (
-                                  <div className="space-y-3">
+                                  <div className="space-y-2.5">
                                     {discussions.map((post: any) => (
-                                      <div key={post.id} className="bg-black/30 border border-white/5 rounded-xl p-4">
+                                      <div key={post.id} className="bg-black/30 border border-white/[0.05] p-4">
                                         <div className="flex items-start justify-between gap-2 mb-2">
                                           <div className="flex items-center gap-2">
-                                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#0085FF] to-purple-500 flex items-center justify-center text-white text-[9px] font-bold">
-                                              {post.user?.name?.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
-                                            </div>
+                                            <Avatar name={post.user?.name || "?"} size="sm" color="#0085FF" />
                                             <div>
                                               <span className="font-bold text-xs">{post.user?.name}</span>
                                               <span className="text-white/15 text-[10px] ml-2">{post.user?.college || ""}</span>
@@ -598,23 +733,20 @@ function DashboardContent() {
                                           </div>
                                           <div className="flex items-center gap-2">
                                             <span className="text-white/15 text-[10px]">{new Date(post.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
-                                            <button onClick={() => handleReportPost(post.id, en.bundle?.id)} className="text-white/10 hover:text-red-400 transition-colors" title="Report">
+                                            <button onClick={() => handleReportPost(post.id, en.bundle?.id)} className="text-white/10 hover:text-red-400 transition-colors">
                                               <span className="material-symbols-outlined text-xs">flag</span>
                                             </button>
                                           </div>
                                         </div>
-                                        <p className="text-white/70 text-sm leading-relaxed">{post.content}</p>
-                                        {/* Replies */}
+                                        <p className="text-white/60 text-sm leading-relaxed">{post.content}</p>
                                         {post.replies && post.replies.length > 0 && (
-                                          <div className="mt-3 pl-4 border-l border-white/5 space-y-2">
+                                          <div className="mt-3 pl-4 border-l border-white/[0.05] space-y-2">
                                             {post.replies.map((reply: any) => (
                                               <div key={reply.id} className="flex items-start gap-2">
-                                                <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-white text-[7px] font-bold shrink-0 mt-0.5">
-                                                  {reply.user?.name?.[0]?.toUpperCase()}
-                                                </div>
+                                                <div className="w-5 h-5 bg-white/10 flex items-center justify-center text-white text-[7px] font-bold shrink-0 mt-0.5">{reply.user?.name?.[0]?.toUpperCase()}</div>
                                                 <div>
                                                   <span className="font-bold text-[10px]">{reply.user?.name}</span>
-                                                  <p className="text-white/50 text-xs">{reply.content}</p>
+                                                  <p className="text-white/40 text-xs">{reply.content}</p>
                                                 </div>
                                               </div>
                                             ))}
@@ -636,139 +768,120 @@ function DashboardContent() {
             </div>
           )}
 
-          {/* ─── CONNECTIONS TAB ─── */}
+          {/* ──────────────────────── CONNECTIONS TAB ─── */}
           {activeTab === "connections" && (
-            <div className="max-w-4xl px-6 md:px-8 py-6 space-y-8 animate-in fade-in duration-300">
+            <div className="max-w-4xl px-6 md:px-8 py-8 space-y-8 animate-in fade-in duration-300">
               <div>
-                <h1 className="font-headline font-black text-3xl tracking-tight mb-1">Connections</h1>
-                <p className="text-white/40 text-sm">People you've connected with through workshops.</p>
+                <h1 className="font-headline font-black text-4xl tracking-tight">Connections</h1>
+                <p className="text-white/30 text-sm mt-1">People you've connected with through workshops.</p>
               </div>
 
               {connectionsLoading ? (
-                <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[#0085FF] border-t-transparent rounded-full animate-spin" /></div>
+                <div className="flex justify-center py-24">
+                  <div className="w-6 h-6 border-2 border-[#0085FF] border-t-transparent rounded-full animate-spin" />
+                </div>
               ) : (
                 <>
-                  {/* Pending incoming */}
                   {connections.pendingIncoming?.length > 0 && (
-                    <div>
-                      <h2 className="font-headline font-bold text-sm mb-3 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-yellow-500 text-base">notification_important</span>
+                    <section>
+                      <h2 className="font-headline font-bold text-xs text-white/40 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-yellow-500 animate-pulse" />
                         Pending Requests ({connections.pendingIncoming.length})
                       </h2>
                       <div className="space-y-2">
                         {connections.pendingIncoming.map((conn: any) => (
-                          <div key={conn.id} className="bg-[#0e0e0e] border border-yellow-500/15 rounded-xl p-4 flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center text-white text-xs font-bold">
-                              {conn.peer?.name?.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
-                            </div>
+                          <div key={conn.id} className="bg-[#0d0d0d] border border-yellow-500/[0.1] p-4 flex items-center gap-4">
+                            <Avatar name={conn.peer?.name || "?"} size="md" color="#ca8a04" />
                             <div className="flex-1">
                               <p className="font-bold text-sm">{conn.peer?.name}</p>
                               <p className="text-white/25 text-[10px]">{conn.peer?.college || "Student"} · Lv.{conn.peer?.level || 1}</p>
                             </div>
                             <div className="flex gap-2">
-                              <button
-                                onClick={() => handleConnectionAction(conn.id, "ACCEPTED")}
-                                disabled={connectionActionLoading === conn.id}
-                                className="bg-green-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-green-600 transition-all disabled:opacity-50"
-                              >
-                                Accept
-                              </button>
-                              <button
-                                onClick={() => handleConnectionAction(conn.id, "DECLINED")}
-                                disabled={connectionActionLoading === conn.id}
-                                className="bg-white/5 text-white/40 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-red-500/10 hover:text-red-400 transition-all disabled:opacity-50"
-                              >
-                                Decline
-                              </button>
+                              <button onClick={() => handleConnectionAction(conn.id, "ACCEPTED")} disabled={connectionActionLoading === conn.id} className="bg-green-500 text-white text-xs font-bold px-3 py-1.5 hover:bg-green-600 transition-colors disabled:opacity-50">Accept</button>
+                              <button onClick={() => handleConnectionAction(conn.id, "DECLINED")} disabled={connectionActionLoading === conn.id} className="bg-white/[0.04] text-white/40 text-xs font-bold px-3 py-1.5 hover:bg-red-500/10 hover:text-red-400 transition-all disabled:opacity-50">Decline</button>
                             </div>
                           </div>
                         ))}
                       </div>
-                    </div>
+                    </section>
                   )}
 
-                  {/* Pending outgoing */}
                   {connections.pendingOutgoing?.length > 0 && (
-                    <div>
-                      <h2 className="font-headline font-bold text-sm mb-3 text-white/40">Sent ({connections.pendingOutgoing.length})</h2>
+                    <section>
+                      <h2 className="font-headline font-bold text-xs text-white/30 uppercase tracking-widest mb-3">Sent ({connections.pendingOutgoing.length})</h2>
                       <div className="space-y-2">
                         {connections.pendingOutgoing.map((conn: any) => (
-                          <div key={conn.id} className="bg-[#0e0e0e] border border-white/5 rounded-xl p-4 flex items-center gap-4 opacity-60">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center text-white text-xs font-bold">
-                              {conn.peer?.name?.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
-                            </div>
+                          <div key={conn.id} className="bg-[#0d0d0d] border border-white/[0.05] p-4 flex items-center gap-4 opacity-50">
+                            <Avatar name={conn.peer?.name || "?"} size="md" color="#333" />
                             <div className="flex-1">
                               <p className="font-bold text-sm">{conn.peer?.name}</p>
                               <p className="text-white/25 text-[10px]">{conn.peer?.college || "Student"}</p>
                             </div>
-                            <span className="text-[10px] text-yellow-500/60 font-bold">Pending</span>
+                            <span className="text-[9px] text-yellow-500/60 font-black uppercase tracking-wider">Pending</span>
                           </div>
                         ))}
                       </div>
-                    </div>
+                    </section>
                   )}
 
-                  {/* Accepted connections */}
-                  <div>
-                    <h2 className="font-headline font-bold text-sm mb-3">Your Network ({connections.accepted?.length || 0})</h2>
+                  <section>
+                    <h2 className="font-headline font-bold text-xs text-white/40 uppercase tracking-widest mb-3">Your Network ({connections.accepted?.length || 0})</h2>
                     {(!connections.accepted || connections.accepted.length === 0) ? (
-                      <div className="text-center py-16 bg-[#0e0e0e] border border-white/5 rounded-xl">
+                      <div className="text-center py-20 bg-[#0d0d0d] border border-dashed border-white/[0.06]">
                         <span className="material-symbols-outlined text-5xl text-white/10 mb-3 block">people</span>
-                        <h3 className="font-headline font-bold text-lg text-white/50 mb-1">No connections yet</h3>
-                        <p className="text-white/25 text-sm mb-5">Enroll in a workshop and connect with peers.</p>
-                        <button onClick={() => switchTab("learning")} className="inline-block bg-[#0085FF] text-white px-6 py-2.5 rounded-lg font-bold text-sm hover:bg-[#0070DD]">Go to My Learning →</button>
+                        <h3 className="font-headline font-bold text-xl text-white/40 mb-2">No connections yet</h3>
+                        <p className="text-white/20 text-sm mb-5">Enroll in a workshop and connect with peers.</p>
+                        <button onClick={() => switchTab("learning")} className="bg-[#0085FF] text-white px-8 py-3 font-bold text-sm hover:bg-[#0070DD] transition-colors">Go to My Learning →</button>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {connections.accepted.map((conn: any) => (
-                          <div key={conn.id} className="bg-[#0e0e0e] border border-white/5 rounded-xl p-4 flex items-center gap-3 hover:border-white/10 transition-all">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0085FF] to-[#00c6ff] flex items-center justify-center text-white text-xs font-bold">
-                              {conn.peer?.name?.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
-                            </div>
+                          <div key={conn.id} className="bg-[#0d0d0d] border border-white/[0.06] p-4 flex items-center gap-3 hover:border-white/10 transition-all">
+                            <Avatar name={conn.peer?.name || "?"} size="md" color="#0085FF" />
                             <div className="flex-1 min-w-0">
                               <p className="font-bold text-sm truncate">{conn.peer?.name}</p>
                               <p className="text-white/25 text-[10px]">{conn.peer?.college || "Student"} · Lv.{conn.peer?.level || 1}</p>
                             </div>
                             {conn.peer?.githubUrl && (
-                              <a href={conn.peer.githubUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] bg-white/5 text-white/40 px-2.5 py-1 rounded-lg hover:text-white hover:bg-white/10 transition-all">GitHub →</a>
+                              <a href={conn.peer.githubUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] bg-white/[0.04] text-white/35 px-2.5 py-1 hover:text-white hover:bg-white/[0.08] transition-all font-mono">GH →</a>
                             )}
                           </div>
                         ))}
                       </div>
                     )}
-                  </div>
+                  </section>
                 </>
               )}
             </div>
           )}
 
-          {/* ─── ORDERS TAB ─── */}
+          {/* ──────────────────────────── ORDERS TAB ─── */}
           {activeTab === "orders" && (
-            <div className="max-w-4xl px-6 md:px-8 py-6 space-y-6 animate-in fade-in duration-300">
-              <h1 className="font-headline font-black text-3xl tracking-tight">Orders</h1>
+            <div className="max-w-4xl px-6 md:px-8 py-8 space-y-6 animate-in fade-in duration-300">
+              <h1 className="font-headline font-black text-4xl tracking-tight">Orders</h1>
               {(orders || []).length === 0 ? (
-                <div className="text-center py-20 bg-[#0e0e0e] border border-white/5 rounded-xl">
+                <div className="text-center py-24 bg-[#0d0d0d] border border-dashed border-white/[0.06]">
                   <span className="material-symbols-outlined text-5xl text-white/10 mb-3 block">receipt_long</span>
-                  <h2 className="font-headline font-bold text-lg text-white/50 mb-1">No orders yet</h2>
-                  <p className="text-white/25 text-sm mb-5">Your purchase history will appear here.</p>
-                  <Link href="/domains" className="inline-block bg-[#0085FF] text-white px-6 py-2.5 rounded-lg font-bold text-sm hover:bg-[#0070DD]">Browse Workshops →</Link>
+                  <h2 className="font-headline font-bold text-xl text-white/40 mb-2">No orders yet</h2>
+                  <p className="text-white/20 text-sm mb-6">Your purchase history will appear here.</p>
+                  <Link href="/domains" className="inline-block bg-[#0085FF] text-white px-8 py-3 font-bold text-sm hover:bg-[#0070DD] transition-colors">Browse Workshops →</Link>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {(orders || []).map((order: any) => (
-                    <div key={order.id} className="bg-[#0e0e0e] border border-white/5 rounded-xl p-5 hover:border-white/10 transition-all">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div key={order.id} className="bg-[#0d0d0d] border border-white/[0.06] p-5 hover:border-white/10 transition-all group">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
-                          <h3 className="font-headline font-bold">{order.bundle?.name || order.productName || "Workshop"}</h3>
-                          <p className="text-white/25 text-xs mt-1">{order.bundle?.cohort?.emoji} {order.bundle?.cohort?.name} · {new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-base">{order.bundle?.cohort?.emoji}</span>
+                            <span className="text-[9px] text-white/25 uppercase tracking-wider">{order.bundle?.cohort?.name}</span>
+                          </div>
+                          <h3 className="font-headline font-bold text-base">{order.bundle?.name || order.productName || "Workshop"}</h3>
+                          <p className="text-white/25 text-[10px] mt-0.5">{new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
                         </div>
                         <div className="flex items-center gap-4">
-                          <span className="font-headline font-bold text-lg">₹{order.amount}</span>
-                          <span className={`text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider ${
-                            order.status === "paid" ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                            : order.status === "pending" ? "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20"
-                            : "bg-red-500/10 text-red-400 border border-red-500/20"
-                          }`}>{order.status === "paid" ? "Confirmed" : order.status}</span>
+                          <span className="font-headline font-black text-2xl">₹{order.amount}</span>
+                          <StatusBadge status={order.status} />
                         </div>
                       </div>
                     </div>
@@ -778,74 +891,102 @@ function DashboardContent() {
             </div>
           )}
 
-          {/* ─── REFERRALS TAB ─── */}
+          {/* ───────────────────────── REFERRALS TAB ─── */}
           {activeTab === "referrals" && (
-            <div className="max-w-4xl px-6 md:px-8 py-6 space-y-8 animate-in fade-in duration-300">
-              <h1 className="font-headline font-black text-3xl tracking-tight">Referrals</h1>
-              {isRealCode && (
-                <div className="bg-gradient-to-br from-[#0e0e0e] to-[#1a1500]/30 border border-[#FFD700]/15 rounded-2xl p-6 relative overflow-hidden">
-                  <div className="relative z-10">
-                    <p className="text-[#FFD700] text-[10px] font-bold uppercase tracking-widest mb-4">Your Referral Link</p>
-                    <div className="flex flex-col sm:flex-row gap-3 mb-6">
-                      <div className="flex-1 bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 font-mono text-[#0085FF] text-sm truncate">letsrevamp.in?ref={user.referralCode}</div>
-                      <button onClick={copyLink} className="bg-[#0085FF] text-white px-6 py-2.5 rounded-lg font-bold text-sm hover:bg-[#0070DD] transition-all shrink-0">{copied ? "Copied! ✓" : "Copy Link"}</button>
+            <div className="max-w-4xl px-6 md:px-8 py-8 space-y-8 animate-in fade-in duration-300">
+              <h1 className="font-headline font-black text-4xl tracking-tight">Referrals</h1>
+
+              {isRealCode ? (
+                <div className="relative border border-[#FFD700]/15 overflow-hidden bg-[#0d0d0d]">
+                  <div className="absolute top-0 left-0 right-0 h-0.5 bg-[#FFD700]/40" />
+                  <div className="absolute -top-16 -right-16 w-48 h-48 bg-[#FFD700]/[0.04] blur-3xl pointer-events-none" />
+                  <div className="relative p-6 space-y-5">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[#FFD700] text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>stars</span>
+                      <span className="text-[10px] font-black text-[#FFD700]/70 uppercase tracking-[0.15em]">Your Referral Link</span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="flex-1 bg-black/50 border border-white/[0.06] px-4 py-2.5 font-mono text-[#0085FF] text-sm truncate">letsrevamp.in?ref={user.referralCode}</div>
+                      <button onClick={copyLink} className="bg-[#FFD700] text-black px-6 py-2.5 font-black text-sm hover:bg-[#e6c300] transition-colors shrink-0">{copied ? "Copied! ✓" : "Copy Link"}</button>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-black/30 rounded-lg p-4 text-center"><div className="font-headline font-black text-2xl text-[#FFD700]">₹{totalEarnings}</div><p className="text-white/30 text-xs mt-0.5">Total Earned</p></div>
-                      <div className="bg-black/30 rounded-lg p-4 text-center"><div className="font-headline font-black text-2xl">{user.totalReferrals}</div><p className="text-white/30 text-xs mt-0.5">People Referred</p></div>
+                      <div className="bg-black/30 border border-white/[0.05] p-5 text-center">
+                        <div className="font-headline font-black text-3xl text-[#FFD700]">₹{totalEarnings}</div>
+                        <p className="text-white/30 text-xs mt-1 uppercase tracking-wider">Total Earned</p>
+                      </div>
+                      <div className="bg-black/30 border border-white/[0.05] p-5 text-center">
+                        <div className="font-headline font-black text-3xl">{user.totalReferrals}</div>
+                        <p className="text-white/30 text-xs mt-1 uppercase tracking-wider">People Referred</p>
+                      </div>
                     </div>
                   </div>
                 </div>
+              ) : (
+                <div className="bg-[#0d0d0d] border border-dashed border-white/[0.06] p-8 text-center">
+                  <span className="material-symbols-outlined text-4xl text-white/10 mb-3 block">lock</span>
+                  <p className="text-white/30 text-sm">Your referral code will appear once your payment is confirmed.</p>
+                </div>
               )}
+
               {(referredUsers || []).length > 0 && (
-                <div>
-                  <h2 className="font-headline font-bold text-sm mb-3">Referred Users</h2>
+                <section>
+                  <h2 className="font-headline font-bold text-xs text-white/40 uppercase tracking-widest mb-3">Referred Users</h2>
                   <div className="space-y-2">
                     {(referredUsers || []).map((u: any) => (
-                      <div key={u.id} className="flex justify-between items-center bg-[#0e0e0e] border border-white/5 rounded-xl p-4">
-                        <div><p className="font-bold text-sm">{u.name || "Anonymous"}</p><p className="text-white/25 text-xs">{u.email}</p></div>
-                        <p className="text-white/25 text-xs">{new Date(u.createdAt).toLocaleDateString("en-IN")}</p>
+                      <div key={u.id} className="flex justify-between items-center bg-[#0d0d0d] border border-white/[0.06] p-4 hover:border-white/10 transition-all">
+                        <div>
+                          <p className="font-bold text-sm">{u.name || "Anonymous"}</p>
+                          <p className="text-white/25 text-xs">{u.email}</p>
+                        </div>
+                        <p className="text-white/20 text-xs font-mono">{new Date(u.createdAt).toLocaleDateString("en-IN")}</p>
                       </div>
                     ))}
                   </div>
-                </div>
+                </section>
               )}
             </div>
           )}
 
-          {/* ─── DOMAINS TAB (GRID) ─── */}
+          {/* ─────────────────────────── DOMAINS TAB ─── */}
           {activeTab === "domains" && (
-            <div className="max-w-5xl px-6 md:px-8 py-6 space-y-6 animate-in fade-in duration-300">
+            <div className="max-w-5xl px-6 md:px-8 py-8 space-y-6 animate-in fade-in duration-300">
               <div>
-                <h1 className="font-headline font-black text-3xl tracking-tight mb-1">Domains</h1>
-                <p className="text-white/40 text-sm">Follow domains to get notified when new workshops drop.</p>
+                <h1 className="font-headline font-black text-4xl tracking-tight">Domains</h1>
+                <p className="text-white/30 text-sm mt-1">Follow a domain to get notified when new workshops drop.</p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {allCohorts.map((cohort: any) => {
                   const isFollowing = subscribedIds.includes(cohort.id)
                   const isLoading = followLoading === cohort.id
                   return (
-                    <div key={cohort.id} className="bg-[#0e0e0e] border border-white/5 rounded-xl p-5 hover:border-white/10 transition-all flex flex-col" style={{ borderTopColor: cohort.accentHex || '#333', borderTopWidth: 2 }}>
+                    <div
+                      key={cohort.id}
+                      className="bg-[#0d0d0d] border border-white/[0.06] hover:border-white/10 p-5 transition-all flex flex-col group relative overflow-hidden"
+                      style={{ borderLeft: `3px solid ${cohort.accentHex || "#333"}` }}
+                    >
+                      <div className="absolute bottom-0 left-0 h-px w-0 group-hover:w-full transition-all duration-500" style={{ background: `${cohort.accentHex || "#0085FF"}30` }} />
                       <div className="flex items-center gap-3 mb-3">
                         <span className="text-2xl">{cohort.emoji}</span>
-                        <h3 className="font-headline font-bold">{cohort.name}</h3>
+                        <h3 className="font-headline font-bold text-sm">{cohort.name}</h3>
+                        {isFollowing && <span className="ml-auto text-[8px] bg-green-500/10 text-green-400 border border-green-500/20 px-1.5 py-0.5 font-black uppercase">On</span>}
                       </div>
-                      <p className="text-white/35 text-xs line-clamp-2 mb-3 flex-1">{cohort.description}</p>
+                      <p className="text-white/30 text-xs line-clamp-2 mb-3 flex-1">{cohort.description}</p>
                       <p className="text-white/15 text-[10px] mb-4">{(cohort.bundles || []).length} workshops</p>
                       <div className="flex items-center gap-2">
-                        <Link href={`/cohort/${cohort.slug}`} className="text-[#0085FF] text-xs hover:underline flex-1">Visit →</Link>
+                        <Link href={`/cohort/${cohort.slug}`} className="text-[#0085FF] text-xs font-bold hover:underline flex-1">Visit →</Link>
                         <button
                           onClick={() => isFollowing ? handleUnsubscribe(cohort.id) : handleSubscribe(cohort.id)}
                           disabled={isLoading}
-                          className={`px-4 py-2 rounded-lg font-bold text-xs transition-all disabled:opacity-50 ${
+                          className={`px-4 py-1.5 font-bold text-xs transition-all disabled:opacity-50 ${
                             isFollowing
-                              ? "bg-white/5 text-white/50 border border-white/10 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20"
-                              : "bg-[#0085FF] text-white hover:bg-[#0070DD] shadow-lg shadow-[#0085FF]/20"
+                              ? "bg-white/[0.04] text-white/40 border border-white/[0.08] hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20"
+                              : "text-white font-bold"
                           }`}
+                          style={!isFollowing ? { background: cohort.accentHex || "#0085FF" } : {}}
                         >
-                          {isLoading ? (
-                            <span className="inline-block w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
-                          ) : isFollowing ? "Following ✓" : "Follow"}
+                          {isLoading
+                            ? <span className="inline-block w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+                            : isFollowing ? "Following ✓" : "Follow"}
                         </button>
                       </div>
                     </div>
@@ -855,49 +996,56 @@ function DashboardContent() {
             </div>
           )}
 
-          {/* ─── ACHIEVEMENTS TAB ─── */}
+          {/* ──────────────────── ACHIEVEMENTS TAB ─── */}
           {activeTab === "achievements" && (
-            <div className="max-w-4xl px-6 md:px-8 py-6 space-y-6 animate-in fade-in duration-300">
+            <div className="max-w-4xl px-6 md:px-8 py-8 space-y-6 animate-in fade-in duration-300">
               <div>
-                <h1 className="font-headline font-black text-3xl tracking-tight mb-1">Achievements</h1>
-                <p className="text-white/40 text-sm">Earn badges and XP by engaging with the platform.</p>
+                <h1 className="font-headline font-black text-4xl tracking-tight">Achievements</h1>
+                <p className="text-white/30 text-sm mt-1">Earn badges and XP by engaging with the platform.</p>
               </div>
 
               {/* XP card */}
-              <div className="bg-gradient-to-br from-[#0e0e0e] to-[#001a3a]/30 border border-[#0085FF]/15 rounded-2xl p-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#0085FF] to-[#00c6ff] flex items-center justify-center text-2xl font-bold shadow-xl shadow-[#0085FF]/20">{user.level}</div>
-                  <div>
-                    <h2 className="font-headline font-bold text-xl">{user.levelName}</h2>
-                    <p className="text-white/40 text-xs">{user.xp} / {user.nextLevelXp} XP to next level</p>
+              <div className="relative bg-[#0d0d0d] border border-[#0085FF]/15 p-6 overflow-hidden">
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#0085FF] to-transparent" />
+                <div className="absolute -top-12 -right-12 w-40 h-40 bg-[#0085FF]/[0.06] blur-3xl pointer-events-none" />
+                <div className="relative flex items-center gap-5">
+                  <XPRing progress={xpProgress} level={user.level} />
+                  <div className="flex-1">
+                    <h2 className="font-headline font-bold text-2xl">{user.levelName}</h2>
+                    <p className="text-white/35 text-sm mb-3">{user.xp} / {user.nextLevelXp} XP to next level</p>
+                    <div className="h-1.5 bg-white/[0.06] overflow-hidden">
+                      <div className="h-full bg-[#0085FF] transition-all duration-1000 relative overflow-hidden" style={{ width: `${xpProgress}%` }}>
+                        <div className="absolute inset-0 animate-shimmer" />
+                      </div>
+                    </div>
+                    <p className="text-white/20 text-[10px] mt-1.5">{user.nextLevelXp - user.xp} XP until Level {user.level + 1}</p>
                   </div>
-                </div>
-                <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-[#0085FF] to-[#00c6ff] rounded-full transition-all duration-700" style={{ width: `${xpProgress}%` }} />
                 </div>
               </div>
 
-              {/* Badges grid */}
+              {/* Badges */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {(achievements?.all || []).map((ach: any) => {
                   const isUnlocked = unlockedSlugs.has(ach.slug)
                   const unlockData = (achievements?.unlocked || []).find((a: any) => a.slug === ach.slug)
                   return (
-                    <div key={ach.id} className={`rounded-xl p-5 transition-all ${
-                      isUnlocked
-                        ? "bg-[#0e0e0e] border border-white/10"
-                        : "bg-[#0e0e0e]/50 border border-dashed border-white/5"
-                    }`}>
+                    <div
+                      key={ach.id}
+                      className={`p-5 transition-all relative overflow-hidden ${
+                        isUnlocked ? "bg-[#0d0d0d] border border-white/10" : "bg-[#0d0d0d]/60 border border-dashed border-white/[0.05]"
+                      }`}
+                    >
+                      {isUnlocked && <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />}
                       <div className="flex items-start justify-between mb-3">
-                        <span className={`text-3xl ${isUnlocked ? "" : "opacity-20 grayscale"}`}>{ach.emoji}</span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          isUnlocked ? "bg-green-500/10 text-green-400 border border-green-500/20" : "bg-white/5 text-white/20"
-                        }`}>{isUnlocked ? "Unlocked" : `${ach.xpReward} XP`}</span>
+                        <span className={`text-3xl leading-none ${isUnlocked ? "" : "opacity-20 grayscale"}`}>{ach.emoji}</span>
+                        <span className={`text-[9px] font-black px-2 py-0.5 border uppercase tracking-wider ${isUnlocked ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-white/[0.04] text-white/20 border-white/[0.06]"}`}>
+                          {isUnlocked ? "Unlocked" : `${ach.xpReward} XP`}
+                        </span>
                       </div>
-                      <h3 className={`font-headline font-bold text-sm ${isUnlocked ? "" : "text-white/30"}`}>{ach.name}</h3>
-                      <p className={`text-xs mt-1 ${isUnlocked ? "text-white/40" : "text-white/15"}`}>{ach.description}</p>
+                      <h3 className={`font-headline font-bold text-sm ${isUnlocked ? "" : "text-white/25"}`}>{ach.name}</h3>
+                      <p className={`text-xs mt-1 leading-relaxed ${isUnlocked ? "text-white/40" : "text-white/15"}`}>{ach.description}</p>
                       {isUnlocked && unlockData?.unlockedAt && (
-                        <p className="text-green-400/40 text-[10px] mt-2">Earned {new Date(unlockData.unlockedAt).toLocaleDateString("en-IN")}</p>
+                        <p className="text-green-400/40 text-[9px] mt-2 font-mono">Earned {new Date(unlockData.unlockedAt).toLocaleDateString("en-IN")}</p>
                       )}
                     </div>
                   )
@@ -906,50 +1054,59 @@ function DashboardContent() {
             </div>
           )}
 
-          {/* ─── RESOURCES TAB ─── */}
+          {/* ──────────────────────── RESOURCES TAB ─── */}
           {activeTab === "resources" && (
-            <div className="max-w-5xl px-6 md:px-8 py-6 space-y-6 animate-in fade-in duration-300">
+            <div className="max-w-5xl px-6 md:px-8 py-8 space-y-6 animate-in fade-in duration-300">
               <div>
-                <h1 className="font-headline font-black text-3xl tracking-tight mb-1">Resources</h1>
-                <p className="text-white/40 text-sm">Free cheatsheets, roadmaps, and templates to level up.</p>
+                <h1 className="font-headline font-black text-4xl tracking-tight">Resources</h1>
+                <p className="text-white/30 text-sm mt-1">Free cheatsheets, roadmaps, and templates to level up.</p>
               </div>
-
-              {/* Filter bar */}
               <div className="flex gap-2 flex-wrap">
                 {["ALL", "CHEATSHEET", "ROADMAP", "TEMPLATE", "RECORDING", "LINK"].map(type => (
-                  <button key={type} onClick={() => setResourceFilter(type)} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                    resourceFilter === type ? "bg-[#0085FF] text-white" : "bg-white/5 text-white/40 hover:text-white/60"
-                  }`}>{type === "ALL" ? "All" : type.charAt(0) + type.slice(1).toLowerCase() + "s"}</button>
+                  <button
+                    key={type}
+                    onClick={() => setResourceFilter(type)}
+                    className={`px-4 py-1.5 text-[11px] font-bold transition-all uppercase tracking-wider ${resourceFilter === type ? "bg-[#0085FF] text-white" : "bg-white/[0.04] text-white/35 hover:text-white/60 hover:bg-white/[0.07]"}`}
+                  >
+                    {type === "ALL" ? "All" : type.charAt(0) + type.slice(1).toLowerCase()}
+                  </button>
                 ))}
               </div>
-
               {filteredResources.length === 0 ? (
-                <div className="text-center py-16 text-white/20">
+                <div className="text-center py-20 text-white/20">
                   <span className="material-symbols-outlined text-5xl mb-3 block">library_books</span>
                   <p className="text-sm">No resources available yet. Check back soon!</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {filteredResources.map((res: any) => {
                     const typeIcons: Record<string, string> = { CHEATSHEET: "description", ROADMAP: "map", TEMPLATE: "draft", RECORDING: "play_circle", LINK: "link" }
                     const typeColors: Record<string, string> = { CHEATSHEET: "#0085FF", ROADMAP: "#4ade80", TEMPLATE: "#FFD700", RECORDING: "#8b5cf6", LINK: "#06b6d4" }
+                    const color = typeColors[res.type] || "#555"
                     return (
-                      <a key={res.id} href={res.fileUrl} target="_blank" rel="noopener noreferrer" className="bg-[#0e0e0e] border border-white/5 rounded-xl p-5 hover:border-white/10 transition-all group">
+                      <a
+                        key={res.id}
+                        href={res.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-[#0d0d0d] border border-white/[0.06] p-5 hover:border-white/10 transition-all group flex flex-col"
+                        style={{ borderTop: `2px solid ${color}25` }}
+                      >
                         <div className="flex items-start gap-3 mb-3">
-                          <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: (typeColors[res.type] || "#555") + "15" }}>
-                            <span className="material-symbols-outlined text-lg" style={{ color: typeColors[res.type] }}>{typeIcons[res.type] || "description"}</span>
+                          <div className="w-10 h-10 flex items-center justify-center shrink-0" style={{ background: `${color}12` }}>
+                            <span className="material-symbols-outlined text-lg" style={{ color }}>{typeIcons[res.type] || "description"}</span>
                           </div>
                           <div className="flex-1 min-w-0">
                             <h3 className="font-bold text-sm group-hover:text-[#0085FF] transition-colors line-clamp-1">{res.title}</h3>
-                            <p className="text-white/30 text-xs mt-0.5 line-clamp-1">{res.description}</p>
+                            <p className="text-white/25 text-xs mt-0.5 line-clamp-1">{res.description}</p>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between mt-auto">
-                          <span className="text-[10px] text-white/20 uppercase tracking-wider">{res.type}</span>
-                          <span className="text-[10px] text-white/20">{res.downloadCount || 0} downloads</span>
+                        <div className="flex items-center justify-between mt-auto pt-2 border-t border-white/[0.04]">
+                          <span className="text-[9px] text-white/20 uppercase tracking-wider font-bold">{res.type}</span>
+                          <span className="text-[9px] text-white/20">{res.downloadCount || 0} downloads</span>
                         </div>
                         {res.isPremium && (
-                          <div className="mt-2 text-[10px] text-[#FFD700]/60 flex items-center gap-1">
+                          <div className="mt-2 text-[10px] text-[#FFD700]/50 flex items-center gap-1">
                             <span className="material-symbols-outlined text-xs">lock</span> Premium
                           </div>
                         )}
@@ -961,121 +1118,178 @@ function DashboardContent() {
             </div>
           )}
 
-          {/* ─── SETTINGS TAB ─── */}
+          {/* ──────────────────────── SETTINGS TAB ─── */}
           {activeTab === "settings" && (
-            <div className="max-w-xl px-6 md:px-8 py-6 space-y-6 animate-in fade-in duration-300">
-              <h1 className="font-headline font-black text-3xl tracking-tight">Settings</h1>
+            <div className="max-w-xl px-6 md:px-8 py-8 space-y-5 animate-in fade-in duration-300">
+              <h1 className="font-headline font-black text-4xl tracking-tight">Settings</h1>
 
-              <div className="bg-[#0e0e0e] border border-white/5 rounded-xl p-6 space-y-5">
-                <div className="flex items-center gap-4 pb-5 border-b border-white/5">
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#0085FF] to-[#00c6ff] flex items-center justify-center text-white text-lg font-bold">{initials}</div>
+              {/* Profile card */}
+              <div className="bg-[#0d0d0d] border border-white/[0.06] p-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-[#0085FF] flex items-center justify-center text-white text-lg font-black">{initials}</div>
                   <div>
-                    <p className="font-bold">{user.name}</p>
+                    <p className="font-bold text-base">{user.name}</p>
                     <p className="text-white/30 text-xs">{user.email}</p>
                     <p className="text-white/15 text-[10px] mt-0.5">Member since {new Date(user.createdAt).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</p>
                   </div>
                 </div>
+              </div>
 
-                {settingsMsg && (
-                  <div className={`p-3 rounded-lg text-xs ${settingsMsg.includes("success") ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>{settingsMsg}</div>
-                )}
-
-                {/* Basic */}
-                <div className="space-y-4">
-                  <p className="text-white/30 text-[10px] font-bold uppercase tracking-widest">Basic Info</p>
-                  <div>
-                    <label className="block text-white/30 text-[10px] font-bold uppercase tracking-wider mb-1">Full Name</label>
-                    <input type="text" value={settingsForm.name} onChange={e => setSettingsForm({ ...settingsForm, name: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-[#0085FF] transition-colors" />
-                  </div>
-                  <div>
-                    <label className="block text-white/30 text-[10px] font-bold uppercase tracking-wider mb-1">Phone</label>
-                    <input type="tel" value={settingsForm.phone} onChange={e => setSettingsForm({ ...settingsForm, phone: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-[#0085FF] transition-colors" />
-                  </div>
-                  <div>
-                    <label className="block text-white/30 text-[10px] font-bold uppercase tracking-wider mb-1">College</label>
-                    <input type="text" value={settingsForm.college} onChange={e => setSettingsForm({ ...settingsForm, college: e.target.value })} placeholder="e.g. IIT Delhi" className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-white/15 outline-none focus:border-[#0085FF] transition-colors" />
-                  </div>
-                  <div>
-                    <label className="block text-white/30 text-[10px] font-bold uppercase tracking-wider mb-1">Graduation Year</label>
-                    <input type="number" value={settingsForm.graduationYear} onChange={e => setSettingsForm({ ...settingsForm, graduationYear: e.target.value })} placeholder="2027" className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-white/15 outline-none focus:border-[#0085FF] transition-colors" />
-                  </div>
+              {settingsMsg && (
+                <div className={`p-3 text-xs border ${settingsMsg.includes("success") ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-red-500/10 text-red-400 border-red-500/20"}`}>
+                  {settingsMsg}
                 </div>
+              )}
 
-                {/* Skills */}
-                <div className="space-y-3 pt-4 border-t border-white/5">
-                  <p className="text-white/30 text-[10px] font-bold uppercase tracking-widest">Skills</p>
+              <div className="bg-[#0d0d0d] border border-white/[0.06] p-6 space-y-5">
+                <p className="text-[9px] text-white/25 font-black uppercase tracking-[0.15em]">Basic Info</p>
+                {[
+                  { key: "name", label: "Full Name", type: "text" },
+                  { key: "phone", label: "Phone", type: "tel" },
+                  { key: "college", label: "College", type: "text", placeholder: "e.g. IIT Delhi" },
+                  { key: "graduationYear", label: "Graduation Year", type: "number", placeholder: "2027" },
+                ].map(f => (
+                  <div key={f.key}>
+                    <label className="block text-[9px] text-white/25 font-black uppercase tracking-wider mb-1.5">{f.label}</label>
+                    <input
+                      type={f.type}
+                      value={settingsForm[f.key] || ""}
+                      onChange={e => setSettingsForm({ ...settingsForm, [f.key]: e.target.value })}
+                      placeholder={f.placeholder}
+                      className={inputCls}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-[#0d0d0d] border border-white/[0.06] p-6 space-y-4">
+                <p className="text-[9px] text-white/25 font-black uppercase tracking-[0.15em]">Skills</p>
+                {(settingsForm.skills || []).length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {(settingsForm.skills || []).map((skill: string) => (
-                      <span key={skill} className="flex items-center gap-1 bg-[#0085FF]/10 text-[#0085FF] text-xs font-medium px-3 py-1 rounded-full border border-[#0085FF]/20">
+                      <span key={skill} className="flex items-center gap-1.5 bg-[#0085FF]/10 text-[#0085FF] text-xs font-bold px-3 py-1 border border-[#0085FF]/20">
                         {skill}
-                        <button onClick={() => handleRemoveSkill(skill)} className="text-[#0085FF]/50 hover:text-red-400 transition-colors ml-1">×</button>
+                        <button onClick={() => handleRemoveSkill(skill)} className="text-[#0085FF]/40 hover:text-red-400 transition-colors leading-none">×</button>
                       </span>
                     ))}
                   </div>
-                  <div className="flex gap-2">
-                    <input type="text" value={skillInput} onChange={e => setSkillInput(e.target.value)} onKeyDown={e => e.key === "Enter" && (e.preventDefault(), handleAddSkill())} placeholder="Add skill (e.g. React)" className="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/15 outline-none focus:border-[#0085FF] transition-colors" />
-                    <button onClick={handleAddSkill} className="bg-white/5 text-white/50 px-4 py-2 rounded-lg text-sm hover:bg-white/10 transition-all">Add</button>
-                  </div>
-                </div>
-
-                {/* Socials */}
-                <div className="space-y-4 pt-4 border-t border-white/5">
-                  <p className="text-white/30 text-[10px] font-bold uppercase tracking-widest">Social Links</p>
-                  <div>
-                    <label className="block text-white/30 text-[10px] uppercase tracking-wider mb-1">GitHub URL</label>
-                    <input type="url" value={settingsForm.githubUrl} onChange={e => setSettingsForm({ ...settingsForm, githubUrl: e.target.value })} placeholder="https://github.com/username" className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-white/15 outline-none focus:border-[#0085FF] transition-colors" />
-                  </div>
-                  <div>
-                    <label className="block text-white/30 text-[10px] uppercase tracking-wider mb-1">LinkedIn URL</label>
-                    <input type="url" value={settingsForm.linkedinUrl} onChange={e => setSettingsForm({ ...settingsForm, linkedinUrl: e.target.value })} placeholder="https://linkedin.com/in/username" className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-white/15 outline-none focus:border-[#0085FF] transition-colors" />
-                  </div>
-                  <div>
-                    <label className="block text-white/30 text-[10px] uppercase tracking-wider mb-1">Twitter / X URL</label>
-                    <input type="url" value={settingsForm.twitterUrl} onChange={e => setSettingsForm({ ...settingsForm, twitterUrl: e.target.value })} placeholder="https://x.com/username" className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-white/15 outline-none focus:border-[#0085FF] transition-colors" />
-                  </div>
-                </div>
-
-                {/* Password */}
-                <div className="pt-4 border-t border-white/5">
-                  <label className="block text-white/30 text-[10px] font-bold uppercase tracking-wider mb-1">New Password <span className="text-white/15 normal-case">(leave blank to keep current)</span></label>
-                  <input type="password" value={settingsForm.password} onChange={e => setSettingsForm({ ...settingsForm, password: e.target.value })} placeholder="••••••••" className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-white/15 outline-none focus:border-[#0085FF] transition-colors" />
-                </div>
-
-                <button onClick={handleSettingsSave} disabled={settingsSaving} className="w-full bg-[#0085FF] text-white rounded-lg py-3 font-bold text-sm uppercase tracking-wider hover:bg-[#0070DD] transition-all disabled:opacity-50 shadow-lg mt-4">
-                  {settingsSaving ? "Saving..." : "Save Changes"}
-                </button>
-              </div>
-
-              <div className="bg-[#0e0e0e] border border-white/5 rounded-xl p-5">
-                <h3 className="font-bold text-xs text-white/40 mb-3">Account Info</h3>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between"><span className="text-white/25">Email</span><span className="text-white/60">{user.email}</span></div>
-                  <div className="flex justify-between"><span className="text-white/25">Referral Code</span><span className="text-white/60 font-mono">{user.referralCode}</span></div>
-                  <div className="flex justify-between"><span className="text-white/25">User ID</span><span className="text-white/20 font-mono text-[10px]">{user.id.slice(0, 12)}…</span></div>
+                )}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={skillInput}
+                    onChange={e => setSkillInput(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && (e.preventDefault(), handleAddSkill())}
+                    placeholder="Add skill (e.g. React)"
+                    className={inputCls + " flex-1"}
+                  />
+                  <button onClick={handleAddSkill} className="bg-white/[0.05] text-white/50 px-4 py-2.5 text-sm hover:bg-white/[0.1] transition-colors font-bold">Add</button>
                 </div>
               </div>
+
+              <div className="bg-[#0d0d0d] border border-white/[0.06] p-6 space-y-4">
+                <p className="text-[9px] text-white/25 font-black uppercase tracking-[0.15em]">Social Links</p>
+                {[
+                  { key: "githubUrl", label: "GitHub URL", placeholder: "https://github.com/username" },
+                  { key: "linkedinUrl", label: "LinkedIn URL", placeholder: "https://linkedin.com/in/username" },
+                  { key: "twitterUrl", label: "Twitter / X URL", placeholder: "https://x.com/username" },
+                ].map(f => (
+                  <div key={f.key}>
+                    <label className="block text-[9px] text-white/25 font-black uppercase tracking-wider mb-1.5">{f.label}</label>
+                    <input
+                      type="url"
+                      value={settingsForm[f.key] || ""}
+                      onChange={e => setSettingsForm({ ...settingsForm, [f.key]: e.target.value })}
+                      placeholder={f.placeholder}
+                      className={inputCls}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-[#0d0d0d] border border-white/[0.06] p-6">
+                <label className="block text-[9px] text-white/25 font-black uppercase tracking-wider mb-1.5">
+                  New Password <span className="text-white/15 normal-case font-normal">(leave blank to keep current)</span>
+                </label>
+                <input
+                  type="password"
+                  value={settingsForm.password || ""}
+                  onChange={e => setSettingsForm({ ...settingsForm, password: e.target.value })}
+                  placeholder="••••••••"
+                  className={inputCls}
+                />
+              </div>
+
+              <button
+                onClick={handleSettingsSave}
+                disabled={settingsSaving}
+                className="w-full bg-[#0085FF] text-white py-3.5 font-black text-sm uppercase tracking-widest hover:bg-[#0070DD] transition-colors disabled:opacity-50"
+              >
+                {settingsSaving ? "Saving..." : "Save Changes"}
+              </button>
+
+              <div className="bg-[#0d0d0d] border border-white/[0.06] p-5 space-y-2.5">
+                <p className="text-[9px] text-white/20 font-black uppercase tracking-[0.15em] mb-3">Account Info</p>
+                {[
+                  { label: "Email", value: user.email },
+                  { label: "Referral Code", value: user.referralCode, mono: true },
+                  { label: "User ID", value: user.id.slice(0, 12) + "…", mono: true, dim: true },
+                ].map(item => (
+                  <div key={item.label} className="flex justify-between items-center text-xs">
+                    <span className="text-white/20">{item.label}</span>
+                    <span className={`${item.mono ? "font-mono text-[11px]" : ""} ${item.dim ? "text-white/20" : "text-white/50"}`}>{item.value}</span>
+                  </div>
+                ))}
+              </div>
+
+              <button onClick={handleLogout} className="w-full border border-red-500/20 text-red-400/60 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/[0.04] py-3 text-sm font-bold transition-all uppercase tracking-wider">
+                Log Out
+              </button>
             </div>
           )}
 
         </main>
       </div>
 
-      {/* ═══ MOBILE TAB BAR ═══ */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-white/5 flex justify-around py-1.5 px-1 z-50">
-        {TABS.slice(0, 5).map((tab) => (
-          <button key={tab.id} onClick={() => switchTab(tab.id)} className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-lg transition-all ${activeTab === tab.id ? "text-[#0085FF]" : "text-white/25"}`}>
-            <span className="material-symbols-outlined text-base" style={activeTab === tab.id ? { fontVariationSettings: "'FILL' 1" } : {}}>{tab.icon}</span>
-            <span className="text-[8px] font-bold uppercase tracking-wider">{tab.label.split(" ").pop()}</span>
-          </button>
-        ))}
+      {/* ═══════════════════════════ MOBILE BOTTOM NAV ═══ */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#080808]/98 backdrop-blur-xl border-t border-white/[0.05] flex justify-around py-2 px-1 z-50">
+        {TABS.slice(0, 5).map((tab) => {
+          const isActive = activeTab === tab.id
+          return (
+            <button
+              key={tab.id}
+              onClick={() => switchTab(tab.id)}
+              className={`flex flex-col items-center gap-1 py-1 px-3 transition-all relative ${isActive ? "text-[#0085FF]" : "text-white/20 hover:text-white/40"}`}
+            >
+              {tab.id === "orders" && pendingOrders > 0 && (
+                <span className="absolute top-0 right-1 w-3 h-3 bg-[#0085FF] text-[7px] font-black text-white flex items-center justify-center">{pendingOrders}</span>
+              )}
+              <span
+                className="material-symbols-outlined text-[20px]"
+                style={isActive ? { fontVariationSettings: "'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 20" } : {}}
+              >
+                {tab.icon}
+              </span>
+              <span className="text-[8px] font-bold uppercase tracking-wider">{tab.label.split(" ").pop()}</span>
+            </button>
+          )
+        })}
       </div>
+
     </div>
   )
 }
 
 export default function UserDashboard() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-black"><div className="w-8 h-8 border-2 border-[#0085FF] border-t-transparent rounded-full animate-spin" /></div>}>
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen bg-[#060606]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-[#0085FF] border-t-transparent rounded-full animate-spin" />
+          <span className="text-white/20 text-xs font-bold uppercase tracking-widest">Loading</span>
+        </div>
+      </div>
+    }>
       <DashboardContent />
     </Suspense>
   )

@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
     const { data: order, error: orderError } = await supabase
       .from('Order')
       .insert({
+        id: crypto.randomUUID(),
         userId: user.id,
         bundleId: bundle.id,
         amount: bundle.eventPrice,

@@ -70,6 +70,7 @@ export async function POST(req: NextRequest) {
     if (step === 'DETAILS' || !isFormData) {
       try {
         await supabase.from('Lead').insert({
+          id: crypto.randomUUID(),
           name: user.name,
           email: user.email,
           phone: user.phone,
@@ -108,9 +109,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Create Order
+    // bundleId is NOT NULL in schema — require it
+    if (!bundleId) {
+      return NextResponse.json({ error: 'Workshop not found. Please go back and try again.' }, { status: 400 })
+    }
+
+    // Create Order — generate id manually because Supabase client bypasses Prisma defaults
     const orderData: any = {
+      id: crypto.randomUUID(),
       userId: user.id,
+      bundleId,
       amount,
       paymentMethod: amount > 0 ? 'upi' : 'free',
       status: amount > 0 ? 'pending' : 'paid',
@@ -118,7 +126,6 @@ export async function POST(req: NextRequest) {
       razorpayPaymentId: transactionId || null,
       paymentProofUrl,
     }
-    if (bundleId) orderData.bundleId = bundleId
 
     const { data: order, error: orderError } = await supabase
       .from('Order')
@@ -139,6 +146,7 @@ export async function POST(req: NextRequest) {
     // Auto-create Enrollment for free registrations
     if (amount === 0 && bundleId) {
       await supabase.from('Enrollment').insert({
+        id: crypto.randomUUID(),
         userId: user.id,
         bundleId,
         status: 'ACTIVE',

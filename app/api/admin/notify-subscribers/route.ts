@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
       // Log communication
       try {
         await supabase.from('CommunicationLog').insert({
+          id: crypto.randomUUID(),
           userId: u.id,
           channel: 'EMAIL',
           messageType: 'DOMAIN_UPDATE',
@@ -77,6 +78,7 @@ export async function POST(req: NextRequest) {
       failed++
       try {
         await supabase.from('CommunicationLog').insert({
+          id: crypto.randomUUID(),
           userId: u.id,
           channel: 'EMAIL',
           messageType: 'DOMAIN_UPDATE',
