@@ -1,10 +1,37 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Script from "next/script"
 import { Suspense } from "react"
+
+/** Small inline indicator showing referral will be applied */
+function ReferralInline() {
+    const [referrerName, setReferrerName] = useState<string | null>(null)
+
+    useEffect(() => {
+        const match = document.cookie.match(/ref_display=([^;]+)/)
+        const code = match?.[1]
+        if (!code) return
+
+        fetch(`/api/referral/validate?code=${encodeURIComponent(code)}`)
+            .then((r) => r.json())
+            .then((d) => {
+                if (d.valid && d.name) setReferrerName(d.name.split(" ")[0])
+            })
+            .catch(() => {})
+    }, [])
+
+    if (!referrerName) return null
+
+    return (
+        <div className="flex items-center gap-2 p-3 mb-6 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium">
+            <span>✅</span>
+            <span>Referral by <strong>{referrerName}</strong> will be applied to your account</span>
+        </div>
+    )
+}
 
 declare global {
     interface Window {
@@ -133,6 +160,9 @@ function SignupContent() {
                             <h2 className="font-headline font-black text-5xl text-[#131313] tracking-tighter uppercase mb-2">SIGN UP</h2>
                             <p className="font-body text-[#131313]/60 text-sm">Create your account to join workshops &amp; access your dashboard.</p>
                         </header>
+
+                        {/* Inline referral indicator */}
+                        <ReferralInline />
 
                         {error && (
                             <div className="p-3 mb-6 text-sm text-red-700 bg-red-100 border-2 border-red-300">

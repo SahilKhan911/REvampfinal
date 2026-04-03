@@ -322,3 +322,16 @@ model DiscussionPost {
   @@index([bundleId])
   @@index([userId])
 }
+
+model RedemptionRequest {
+  id          String    @id @default(uuid())
+  userId      String
+  amount      Float
+  upiId       String
+  status      String    @default("INITIATED") // INITIATED, PROCESSING, PAID, REJECTED
+  adminNote   String?
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+
+  @@index([userId])
+}

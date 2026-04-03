@@ -54,8 +54,8 @@ export async function sendPendingEmail(
               <ul style="margin: 0; padding: 0 0 0 20px; color: #d1d5db; font-size: 14px; line-height: 2;">
                 <li>Our team verifies your transaction ID</li>
                 <li>You'll receive a confirmation email</li>
-                <li>You'll get your WhatsApp group invite</li>
-                <li>You'll receive your unique referral code</li>
+                <li>We'll add you to the WhatsApp community group</li>
+                <li>Your referral link will be on your dashboard</li>
               </ul>
             </div>
 
@@ -112,26 +112,18 @@ export async function sendPaymentConfirmationEmail(
             </div>
 
             <div style="background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 24px; margin: 24px 0;">
-              <h3 style="margin: 0 0 16px; font-size: 14px; text-transform: uppercase; color: #9ca3af; letter-spacing: 1px;">🚀 Join the Community</h3>
-              <p style="margin: 0 0 12px; color: #d1d5db; font-size: 14px;">Join our exclusive WhatsApp group for workshop sessions, resources, and mentor interactions:</p>
-              <a href="https://chat.whatsapp.com/placeholder" style="display: inline-block; padding: 14px 28px; background: #25D366; color: #fff; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 15px;">
-                Join WhatsApp Group →
-              </a>
+              <h3 style="margin: 0 0 16px; font-size: 14px; text-transform: uppercase; color: #9ca3af; letter-spacing: 1px;">✅ What's Next</h3>
+              <ul style="margin: 0; padding: 0 0 0 20px; color: #d1d5db; font-size: 14px; line-height: 2.2;">
+                <li>You've been <strong style="color: #fff;">added to the WhatsApp community group</strong></li>
+                <li>Your <strong style="color: #10b981;">referral link</strong> is available on your dashboard</li>
+                <li>Share it with friends to earn <strong style="color: #10b981;">₹100–200</strong> per referral!</li>
+              </ul>
             </div>
 
-            <div style="background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 24px; margin: 24px 0;">
-              <h3 style="margin: 0 0 12px; font-size: 14px; text-transform: uppercase; color: #9ca3af; letter-spacing: 1px;">💰 Your Referral Link</h3>
-              <p style="margin: 0 0 8px; color: #d1d5db; font-size: 14px;">Share this and earn <strong style="color: #10b981;">₹100–200</strong> per referral!</p>
-              <div style="background: #000; border: 1px solid #374151; border-radius: 8px; padding: 14px; word-break: break-all;">
-                <code style="color: #60a5fa; font-size: 13px;">https://gsocii-livid.vercel.app?ref=${referralCode}</code>
-              </div>
-              <p style="margin: 8px 0 0; color: #6b7280; font-size: 12px;">Your referral code: <strong style="color: #fff;">${referralCode}</strong></p>
-            </div>
-
-            <div style="background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 24px; margin: 24px 0;">
+            <div style="background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 24px; margin: 24px 0; text-align: center;">
               <h3 style="margin: 0 0 12px; font-size: 14px; text-transform: uppercase; color: #9ca3af; letter-spacing: 1px;">📊 Your Dashboard</h3>
-              <p style="margin: 0 0 12px; color: #d1d5db; font-size: 14px;">Log in to track your orders, referral earnings, and more:</p>
-              <a href="https://gsocii-livid.vercel.app/dashboard" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: #fff; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px;">
+              <p style="margin: 0 0 12px; color: #d1d5db; font-size: 14px;">Track orders, referral earnings, and more:</p>
+              <a href="https://letsrevamp.in/dashboard" style="display: inline-block; padding: 12px 24px; background: #2563eb; color: #fff; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px;">
                 Go to Dashboard →
               </a>
             </div>

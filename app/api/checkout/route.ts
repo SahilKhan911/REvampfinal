@@ -3,6 +3,10 @@ import { supabase } from '@/lib/supabase'
 import { cookies } from 'next/headers'
 import { sendOrderConfirmationEmail } from '@/lib/email'
 import { checkAndGrantAchievements } from '@/lib/achievements'
+import { PrismaClient } from '@prisma/client'
+
+const prisma = new PrismaClient()
+
 
 export const dynamic = 'force-dynamic'
 
@@ -12,7 +16,7 @@ export async function POST(req: NextRequest) {
     const isFormData = contentType.includes('multipart/form-data')
     
     let userId: string, domain: string, plan: string, amount: number,
-        transactionId: string, step: string, file: File | null = null
+        transactionId: string, step: string, file: File | null = null, appliedBalance: number = 0
 
     if (isFormData) {
       const formData = await req.formData()
@@ -20,6 +24,7 @@ export async function POST(req: NextRequest) {
       domain = formData.get('domain') as string
       plan = formData.get('plan') as string
       amount = parseFloat(formData.get('amount') as string) || 0
+      appliedBalance = parseFloat(formData.get('appliedBalance') as string) || 0
       step = formData.get('step') as string || 'PAYMENT'
       file = formData.get('paymentProof') as File | null
       transactionId = formData.get('transactionId') as string
@@ -29,6 +34,7 @@ export async function POST(req: NextRequest) {
       domain = body.domain
       plan = body.plan
       amount = body.amount || 0
+      appliedBalance = parseFloat(body.appliedBalance) || 0
       step = body.step || 'PAYMENT'
       transactionId = body.transactionId
     }
@@ -114,14 +120,43 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Workshop not found. Please go back and try again.' }, { status: 400 })
     }
 
+    // Verify Applied Balance if present
+    if (appliedBalance > 0) {
+      const userWithRefs = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+      if (!userWithRefs) return NextResponse.json({ error: 'User not found' }, { status: 400 });
+
+      // Calculate earned from ReferralPayout table
+      const payouts = await prisma.referralPayout.findMany({
+        where: { userId: userId }
+      });
+      const earned = payouts.reduce((sum, p) => sum + (p.amountPaid || 0), 0);
+
+      // Calculate redeemed from RedemptionRequest table
+      const redemptions = await prisma.redemptionRequest.findMany({
+        where: { userId: userId, status: { not: 'REJECTED' } }
+      });
+      const redeemed = redemptions.reduce((sum, r) => sum + r.amount, 0);
+
+      const available = earned - redeemed;
+
+      if (appliedBalance > available) {
+        return NextResponse.json({ error: 'Insufficient referral balance' }, { status: 400 })
+      }
+    }
+
+    const finalAmount = Math.max(0, amount - appliedBalance);
+
     // Create Order — generate id manually because Supabase client bypasses Prisma defaults
+    const orderId = crypto.randomUUID();
     const orderData: any = {
-      id: crypto.randomUUID(),
-      userId: user.id,
+      id: orderId,
+      userId: userId,
       bundleId,
-      amount,
-      paymentMethod: amount > 0 ? 'upi' : 'free',
-      status: amount > 0 ? 'pending' : 'paid',
+      amount: finalAmount,
+      paymentMethod: finalAmount > 0 ? 'upi' : (appliedBalance > 0 ? 'referral_balance' : 'free'),
+      status: finalAmount > 0 ? 'pending' : 'paid',
       productName: productLabel,
       razorpayPaymentId: transactionId || null,
       paymentProofUrl,
@@ -138,13 +173,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Order creation failed: ' + orderError.message }, { status: 500 })
     }
 
+    // Capture the balance deduction if applied
+    if (appliedBalance > 0) {
+      await prisma.redemptionRequest.create({
+        data: {
+          id: crypto.randomUUID(),
+          userId: user.id,
+          amount: appliedBalance,
+          upiId: `WORKSHOP_PURCHASE:${orderId}`,
+          status: 'PAID',
+          adminNote: `Applied to order for ${bundleRecord?.name || 'Workshop'}`
+        }
+      });
+    }
+
     // Update Lead
     await supabase.from('Lead')
       .update({ stepReached: 'PAYMENT', bundleId: bundleId || null })
       .eq('email', user.email)
 
-    // Auto-create Enrollment for free registrations
-    if (amount === 0 && bundleId) {
+    // Auto-create Enrollment for free or fully balance-covered registrations
+    if (finalAmount === 0 && bundleId) {
       await supabase.from('Enrollment').insert({
         id: crypto.randomUUID(),
         userId: user.id,
@@ -154,13 +203,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Send order confirmation email + achievement check (non-blocking)
-    sendOrderConfirmationEmail(user.email, user.name, productLabel, amount).catch(() => {})
+    sendOrderConfirmationEmail(user.email, user.name, productLabel, finalAmount).catch(() => {})
     checkAndGrantAchievements(user.id).catch(() => {})
 
-    // Track referral
-    if (user.referredBy) {
-      try { await supabase.rpc('increment_referral', { code: user.referredBy }) } catch { /* ignore */ }
-    }
+    // Note: Referral tracking happens on admin approval (admin/orders PATCH),
+    // not here — the old increment_referral RPC no longer exists.
 
     return NextResponse.json({ 
       success: true, 

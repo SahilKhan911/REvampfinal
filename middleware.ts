@@ -59,6 +59,13 @@ export function middleware(request: NextRequest) {
       httpOnly: true,
       sameSite: 'lax',
     })
+    // Client-readable mirror for referral banner UI
+    response.cookies.set('ref_display', referralCode, {
+      maxAge: 7 * 24 * 60 * 60,
+      path: '/',
+      httpOnly: false,
+      sameSite: 'lax',
+    })
   }
 
   // 3. Admin Route Protection

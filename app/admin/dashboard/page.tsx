@@ -111,6 +111,10 @@ export default function AdminDashboard() {
               <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 text-[10px] font-bold rounded-full">{pendingCount}</span>
             )}
           </Link>
+          <Link href="/admin/payouts" className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm font-medium transition-all flex items-center gap-2">
+            <IndianRupee className="w-4 h-4" />
+            Payouts
+          </Link>
           <Link href="/admin/users" className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm font-medium transition-all">
             Users
           </Link>

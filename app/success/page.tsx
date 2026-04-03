@@ -65,7 +65,7 @@ function SuccessContent() {
             <span className="material-symbols-outlined text-[#0085FF] text-5xl mb-6 block">mail</span>
             <h3 className="font-headline font-bold text-3xl text-white uppercase mb-4 tracking-tight">CHECK YOUR EMAIL</h3>
             <p className="text-white/60 text-lg leading-snug">
-              Check your email for <span className="text-white font-bold">workshop access details</span>, a <span className="text-white font-bold">WhatsApp group invite</span>, and your <span className="text-white font-bold">unique referral code</span>.
+              You&apos;ll receive a <span className="text-white font-bold">confirmation email</span> shortly. Our team will <span className="text-white font-bold">add you to the WhatsApp group</span> once verified. Your <span className="text-white font-bold">referral link</span> will be on your dashboard.
             </p>
           </div>
 

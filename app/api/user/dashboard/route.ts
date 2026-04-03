@@ -42,6 +42,7 @@ export async function GET(req: NextRequest) {
             { data: referralPayouts },
             { data: userAchievements },
             { data: allAchievements },
+            { data: redemptions },
         ] = await Promise.all([
             supabase.from('Order').select('*, bundle:Bundle(*, cohort:Cohort(name, slug, emoji, accentHex))').eq('userId', user.id).order('createdAt', { ascending: false }),
             supabase.from('Enrollment').select('*, bundle:Bundle(*, cohort:Cohort(name, slug, emoji, accentHex))').eq('userId', user.id).order('enrolledAt', { ascending: false }),
@@ -50,9 +51,11 @@ export async function GET(req: NextRequest) {
             supabase.from('ReferralPayout').select('*').eq('userId', user.id).order('paidAt', { ascending: false }),
             supabase.from('UserAchievement').select('*, achievement:Achievement(*)').eq('userId', user.id).order('unlockedAt', { ascending: false }),
             supabase.from('Achievement').select('*').eq('isActive', true),
+            supabase.from('RedemptionRequest').select('*').eq('userId', user.id).order('createdAt', { ascending: false }),
         ])
 
         const totalEarnings = (referralPayouts || []).reduce((sum: number, p: any) => sum + (p.amountPaid || 0), 0)
+        const totalRedeemed = (redemptions || []).filter((r: any) => r.status !== 'REJECTED').reduce((sum: number, r: any) => sum + (r.amount || 0), 0)
         const levelInfo = calculateLevel(user.xp || 0)
 
         return NextResponse.json({
@@ -83,7 +86,10 @@ export async function GET(req: NextRequest) {
             subscriptions: subscriptions || [],
             referredUsers: referredUsers || [],
             referralPayouts: referralPayouts || [],
+            redemptions: redemptions || [],
             totalEarnings,
+            totalRedeemed,
+            availableBalance: totalEarnings - totalRedeemed,
             achievements: {
                 unlocked: (userAchievements || []).map((ua: any) => ({
                     ...ua.achievement,

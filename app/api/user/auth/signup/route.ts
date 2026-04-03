@@ -30,8 +30,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'An account with this email already exists. Please log in.' }, { status: 409 })
     }
 
-    // Generate referral code
-    const referralCode = name.toLowerCase().replace(/[^a-z]/g, '').slice(0, 6) + '_' + Math.random().toString(36).substring(2, 7)
+    // Generate temp referral code (finalized to REV-XXXX on admin approval)
+    const referralCode = `tmp_${Math.random().toString(36).substring(2, 8)}`
 
     // Capture referral cookie
     const referredBy = req.cookies.get('referral_code')?.value || null

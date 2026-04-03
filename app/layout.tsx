@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Suspense } from "react"
 import { cookies } from "next/headers"
 import ReferralTracker from "@/components/ReferralTracker"
+import ReferralBanner from "./components/ReferralBanner"
 import { getCohortConfig, DEFAULT_COHORT } from "@/lib/cohorts"
 import "./globals.css"
 
@@ -48,6 +49,7 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body bg-black text-white antialiased selection:bg-[#0085FF]/30 selection:text-white overflow-x-hidden">
+        <ReferralBanner />
         <Suspense fallback={null}>
           <ReferralTracker />
         </Suspense>

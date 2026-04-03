@@ -43,6 +43,9 @@ export async function POST(req: NextRequest) {
         if (existingUser) {
             user = existingUser
         } else {
+            // Read referral cookie — set by middleware when user arrived via ?ref=CODE
+            const referralCookie = req.cookies.get('referral_code')?.value || null
+
             const { data, error } = await supabase
                 .from('User')
                 .insert({
@@ -51,8 +54,8 @@ export async function POST(req: NextRequest) {
                     email,
                     phone: '',
                     passwordHash: `google_${googleId}`, // Google users don't need a password
-                    referralCode: `tmp_${Math.random().toString(36).substring(7)}`,
-                    referredBy: null,
+                    referralCode: `tmp_${Math.random().toString(36).substring(2, 8)}`,
+                    referredBy: referralCookie,
                 })
                 .select()
                 .single()

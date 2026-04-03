@@ -26,12 +26,27 @@ function CheckoutContent() {
   const [screenshotFile, setScreenshotFile]   = useState<File | null>(null)
   const [transactionId, setTransactionId]     = useState("")
   const [copied, setCopied]                   = useState(false)
+  const [useBalance, setUseBalance]           = useState(false)
+  const [availableBalance, setAvailableBalance] = useState(0)
+
+  const appliedBalance = useBalance ? Math.min(availableBalance, bundle?.eventPrice || 0) : 0
+  const finalPrice     = Math.max(0, (bundle?.eventPrice || 0) - appliedBalance)
+
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const checkAuth = fetch("/api/user/auth/me")
       .then(r => r.json())
-      .then(d => { setUser(d.user); setAuthChecked(true) })
+      .then(d => { 
+        setUser(d.user); 
+        setAuthChecked(true)
+        if (d.user) {
+          fetch("/api/user/dashboard")
+            .then(res => res.json())
+            .then(dashData => setAvailableBalance(dashData.availableBalance || 0))
+            .catch(() => {})
+        }
+      })
       .catch(() => setAuthChecked(true))
 
     const fetchBundle = fetch(`/api/bundles?slug=${workshopId}`)
@@ -79,7 +94,7 @@ function CheckoutContent() {
   }
 
   const handlePaidSubmit = async () => {
-    if (!transactionId && !screenshotFile) {
+    if (finalPrice > 0 && !transactionId && !screenshotFile) {
       setError("Please enter your UPI Transaction ID or upload a screenshot.")
       return
     }
@@ -90,9 +105,10 @@ function CheckoutContent() {
       fd.append("domain",        domainSlug)
       fd.append("plan",          workshopId)
       fd.append("amount",        String(bundle.eventPrice))
+      fd.append("appliedBalance", String(appliedBalance))
       fd.append("step",          "PAYMENT")
       fd.append("transactionId", transactionId || "")
-      if (screenshotFile) fd.append("paymentProof", screenshotFile)
+      if (screenshotFile && finalPrice > 0) fd.append("paymentProof", screenshotFile)
 
       const res  = await fetch("/api/checkout", { method: "POST", body: fd })
       const data = await res.json()
@@ -121,7 +137,7 @@ function CheckoutContent() {
   }
 
   const accent       = cohort.accentHex || "#0085FF"
-  const upiDeepLink  = `upi://pay?pa=${UPI_ID}&pn=REvamp&am=${bundle.eventPrice}&cu=INR&tn=${encodeURIComponent(`${cohort.name} - ${bundle.name}`)}`
+  const upiDeepLink  = `upi://pay?pa=${UPI_ID}&pn=REvamp&am=${finalPrice}&cu=INR&tn=${encodeURIComponent(`${cohort.name} - ${bundle.name}`)}`
   const stepIndex    = step === "pay" ? 0 : step === "upload" ? 1 : 2
   const stepsArr     = ["Pay", "Verify", "Done"]
 
@@ -231,6 +247,33 @@ function CheckoutContent() {
               <p className="text-white/30 text-[10px] tracking-wider uppercase mt-1">One-time</p>
             </div>
           </div>
+
+          {availableBalance > 0 && (
+            <div className="border-t border-white/5 p-4 bg-white/[0.02] flex items-center justify-between cursor-pointer hover:bg-white/[0.04] transition-colors" onClick={() => setUseBalance(!useBalance)}>
+              <div>
+                <p className="text-sm font-bold text-[#FFD700] flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px]">stars</span>
+                  Referral Balance
+                </p>
+                <p className="text-xs text-white/40 mt-1">₹{availableBalance} Available</p>
+              </div>
+              <div className="flex items-center gap-3">
+                {useBalance && (
+                  <span className="text-sm font-bold text-green-400">-₹{appliedBalance}</span>
+                )}
+                <div className={`w-10 h-6 rounded-full p-1 transition-colors ${useBalance ? 'bg-[#FFD700]' : 'bg-white/10'}`}>
+                  <div className={`w-4 h-4 rounded-full bg-black transition-transform duration-300 ${useBalance ? 'translate-x-4' : 'translate-x-0'}`} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {useBalance && (
+            <div className="p-6 border-t border-[#FFD700]/10 bg-[#FFD700]/5 flex justify-between items-center">
+              <p className="text-sm font-bold text-white/60">Final Amount To Pay</p>
+              <p className="text-xl font-bold text-white">₹{finalPrice}</p>
+            </div>
+          )}
         </div>
 
         {/* ── Step indicator ── */}
@@ -273,89 +316,109 @@ function CheckoutContent() {
         {step === "pay" && (
           <div className="space-y-6">
 
-            {/* UPI amount + ID */}
-            <div className="border border-white/10 bg-[#0a0a0a]">
-              <div className="p-8 text-center border-b border-white/5">
-                <p className="font-label text-[10px] tracking-[0.3em] text-white/30 uppercase mb-4">Pay using any UPI app</p>
-                <p className="font-headline font-bold text-6xl tracking-tight mb-1" style={{ color: accent }}>
-                  ₹{bundle.eventPrice}
-                </p>
-              </div>
-
-              {/* QR Code */}
-              <div className="flex flex-col items-center gap-4 py-8 border-b border-white/5">
-                <div className="p-4 bg-white">
-                  <QRCodeSVG
-                    value={upiDeepLink}
-                    size={180}
-                    bgColor="#ffffff"
-                    fgColor="#000000"
-                    level="H"
-                  />
-                </div>
-                <p className="font-label text-[10px] tracking-[0.3em] text-white/30 uppercase">
-                  Scan with GPay · PhonePe · Paytm
-                </p>
-              </div>
-
-              <div className="p-6">
-                <p className="font-label text-[10px] tracking-[0.3em] text-white/30 uppercase mb-3">Or pay via UPI ID</p>
-                <div className="flex items-center justify-between border border-white/10 bg-black px-5 py-4">
-                  <code className="font-mono text-lg tracking-wide" style={{ color: "#FFD700" }}>{UPI_ID}</code>
-                  <button
-                    onClick={handleCopy}
-                    className="flex items-center gap-1.5 font-label text-[10px] tracking-widest uppercase transition-all px-3 py-1.5 border"
-                    style={copied
-                      ? { borderColor: `${accent}50`, color: accent }
-                      : { borderColor: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.4)" }
-                    }
-                  >
-                    <span className="material-symbols-outlined text-xs">{copied ? "check" : "content_copy"}</span>
-                    {copied ? "Copied" : "Copy"}
-                  </button>
-                </div>
-              </div>
-
-              <div className="px-6 pb-6">
-                <a
-                  href={upiDeepLink}
-                  className="flex items-center justify-center gap-2.5 w-full py-4 font-headline font-bold text-sm tracking-widest uppercase text-white transition-all hover:opacity-90"
-                  style={{ background: accent }}
-                >
-                  <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>account_balance</span>
-                  Open UPI App & Pay ₹{bundle.eventPrice}
-                </a>
-                <p className="text-center text-white/20 text-xs mt-3 font-label tracking-wider">
-                  GPay · PhonePe · Paytm · any UPI app
-                </p>
-              </div>
-            </div>
-
-            {/* Instructions */}
-            <div className="border border-white/5 bg-[#0a0a0a]">
-              <div className="px-6 pt-5 pb-2 border-b border-white/5">
-                <p className="font-label text-[10px] tracking-[0.3em] text-white/30 uppercase">How it works</p>
-              </div>
-              <div className="divide-y divide-white/5">
-                {[
-                  { n: "01", text: <>Pay <span className="text-white font-bold">₹{bundle.eventPrice}</span> to <span className="font-mono text-xs bg-white/10 px-1.5 py-0.5">{UPI_ID}</span> via any UPI app</> },
-                  { n: "02", text: <>Take a screenshot of the <span className="text-green-400 font-bold">successful</span> payment confirmation</> },
-                  { n: "03", text: <>Upload it in the next step for <span className="text-white font-bold">instant verification</span></> },
-                ].map(({ n, text }) => (
-                  <div key={n} className="flex items-start gap-4 px-6 py-4">
-                    <span className="font-mono text-xs text-white/20 mt-0.5 flex-shrink-0 w-6">{n}</span>
-                    <p className="text-white/50 text-sm leading-relaxed">{text}</p>
+            {finalPrice === 0 ? (
+                 <div className="border border-white/10 bg-[#0a0a0a] p-8 text-center pt-12 pb-12">
+                   <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-4 border border-green-500/20">
+                     <span className="material-symbols-outlined text-green-400 text-3xl">check_circle</span>
+                   </div>
+                   <h3 className="font-headline font-bold text-2xl text-white mb-2">Fully Covered</h3>
+                   <p className="text-white/50 text-sm mb-8">Your referral balance covers the full cost of this workshop. No manual payment required.</p>
+                   <button
+                     onClick={handlePaidSubmit}
+                     disabled={loading}
+                     className="max-w-[300px] w-full mx-auto block py-4 font-headline font-bold text-sm tracking-widest uppercase text-black hover:opacity-90 transition-all disabled:opacity-50"
+                     style={{ background: "#FFD700" }}
+                   >
+                     {loading ? "Confirming..." : "Confirm & Enroll Now →"}
+                   </button>
+                 </div>
+            ) : (
+                <>
+                {/* UPI amount + ID */}
+                <div className="border border-white/10 bg-[#0a0a0a]">
+                  <div className="p-8 text-center border-b border-white/5">
+                    <p className="font-label text-[10px] tracking-[0.3em] text-white/30 uppercase mb-4">Pay using any UPI app</p>
+                    <p className="font-headline font-bold text-6xl tracking-tight mb-1" style={{ color: accent }}>
+                      ₹{finalPrice}
+                    </p>
                   </div>
-                ))}
-              </div>
-            </div>
 
-            <button
-              onClick={() => setStep("upload")}
-              className="w-full py-4 font-headline font-bold text-sm tracking-widest uppercase border border-white/20 text-white hover:bg-white/5 transition-all"
-            >
-              I&apos;ve Paid — Upload Proof →
-            </button>
+                  {/* QR Code */}
+                  <div className="flex flex-col items-center gap-4 py-8 border-b border-white/5">
+                    <div className="p-4 bg-white">
+                      <QRCodeSVG
+                        value={upiDeepLink}
+                        size={180}
+                        bgColor="#ffffff"
+                        fgColor="#000000"
+                        level="H"
+                      />
+                    </div>
+                    <p className="font-label text-[10px] tracking-[0.3em] text-white/30 uppercase">
+                      Scan with GPay · PhonePe · Paytm
+                    </p>
+                  </div>
+
+                  <div className="p-6">
+                    <p className="font-label text-[10px] tracking-[0.3em] text-white/30 uppercase mb-3">Or pay via UPI ID</p>
+                    <div className="flex items-center justify-between border border-white/10 bg-black px-5 py-4">
+                      <code className="font-mono text-lg tracking-wide" style={{ color: "#FFD700" }}>{UPI_ID}</code>
+                      <button
+                        onClick={handleCopy}
+                        className="flex items-center gap-1.5 font-label text-[10px] tracking-widest uppercase transition-all px-3 py-1.5 border"
+                        style={copied
+                          ? { borderColor: `${accent}50`, color: accent }
+                          : { borderColor: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.4)" }
+                        }
+                      >
+                        <span className="material-symbols-outlined text-xs">{copied ? "check" : "content_copy"}</span>
+                        {copied ? "Copied" : "Copy"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="px-6 pb-6">
+                    <a
+                      href={upiDeepLink}
+                      className="flex items-center justify-center gap-2.5 w-full py-4 font-headline font-bold text-sm tracking-widest uppercase text-white transition-all hover:opacity-90"
+                      style={{ background: accent }}
+                    >
+                      <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>account_balance</span>
+                      Open UPI App & Pay ₹{finalPrice}
+                    </a>
+                    <p className="text-center text-white/20 text-xs mt-3 font-label tracking-wider">
+                      GPay · PhonePe · Paytm · any UPI app
+                    </p>
+                  </div>
+                </div>
+
+                {/* Instructions */}
+                <div className="border border-white/5 bg-[#0a0a0a]">
+                  <div className="px-6 pt-5 pb-2 border-b border-white/5">
+                    <p className="font-label text-[10px] tracking-[0.3em] text-white/30 uppercase">How it works</p>
+                  </div>
+                  <div className="divide-y divide-white/5">
+                    {[
+                      { n: "01", text: <>Pay <span className="text-white font-bold">₹{finalPrice}</span> to <span className="font-mono text-xs bg-white/10 px-1.5 py-0.5">{UPI_ID}</span> via any UPI app</> },
+                      { n: "02", text: <>Take a screenshot of the <span className="text-green-400 font-bold">successful</span> payment confirmation</> },
+                      { n: "03", text: <>Upload it in the next step for <span className="text-white font-bold">instant verification</span></> },
+                    ].map(({ n, text }) => (
+                      <div key={n} className="flex items-start gap-4 px-6 py-4">
+                        <span className="font-mono text-xs text-white/20 mt-0.5 flex-shrink-0 w-6">{n}</span>
+                        <p className="text-white/50 text-sm leading-relaxed">{text}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setStep("upload")}
+                  className="w-full py-4 font-headline font-bold text-sm tracking-widest uppercase border border-white/20 text-white hover:bg-white/5 transition-all"
+                >
+                  I&apos;ve Paid — Upload Proof →
+                </button>
+                </>
+            )}
           </div>
         )}
 

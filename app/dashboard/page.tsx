@@ -125,6 +125,11 @@ function DashboardContent() {
   const [settingsMsg, setSettingsMsg] = useState("")
   const [skillInput, setSkillInput] = useState("")
 
+  const [withdrawAmount, setWithdrawAmount] = useState("")
+  const [withdrawUpi, setWithdrawUpi] = useState("")
+  const [withdrawSubmitting, setWithdrawSubmitting] = useState(false)
+  const [withdrawMsg, setWithdrawMsg] = useState({ text: "", type: "" })
+
   useEffect(() => {
     Promise.all([
       fetch("/api/user/dashboard").then(r => r.json()),
@@ -282,6 +287,32 @@ function DashboardContent() {
     finally { setSettingsSaving(false) }
   }
 
+  const handleWithdraw = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setWithdrawSubmitting(true)
+    setWithdrawMsg({ text: "", type: "" })
+    try {
+      const res = await fetch("/api/referral/redeem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: Number(withdrawAmount), upiId: withdrawUpi })
+      }).then(r => r.json())
+
+      if (res.error) setWithdrawMsg({ text: res.error, type: "error" })
+      else {
+        setWithdrawMsg({ text: "Request submitted! Check below for status.", type: "success" })
+        setWithdrawAmount("")
+        setWithdrawUpi("")
+        const fresh = await fetch("/api/user/dashboard").then(r => r.json())
+        if (!fresh.error) setData(fresh)
+      }
+    } catch {
+      setWithdrawMsg({ text: "Something went wrong.", type: "error" })
+    } finally {
+      setWithdrawSubmitting(false)
+    }
+  }
+
   // ── loading screen ─────────────────────────────────
   if (loading || !data) {
     return (
@@ -294,7 +325,7 @@ function DashboardContent() {
     )
   }
 
-  const { user, orders, enrollments, subscriptions, referredUsers, totalEarnings, achievements } = data
+  const { user, orders, enrollments, subscriptions, referredUsers, totalEarnings, achievements, redemptions, totalRedeemed, availableBalance } = data
   const isRealCode = Boolean(user.referralCode && !user.referralCode.startsWith("tmp_"))
   const pendingOrders = (orders || []).filter((o: any) => o.status === "pending").length
   const subscribedIds = (subscriptions || []).map((s: any) => s.cohort?.id).filter(Boolean)
@@ -469,7 +500,7 @@ function DashboardContent() {
                   { label: "Level",    value: user.level,                         sub: user.levelName,              icon: "star",       color: "#0085FF", tab: "achievements" as Tab },
                   { label: "Badges",   value: achievements?.unlocked?.length || 0, sub: `of ${achievements?.all?.length || 0}`,  icon: "emoji_events", color: "#FFD700", tab: "achievements" as Tab },
                   { label: "Enrolled", value: (enrollments || []).length,          sub: "workshops",                 icon: "school",     color: "#8b5cf6", tab: "learning" as Tab },
-                  { label: "Earned",   value: `₹${totalEarnings}`,                sub: `${user.totalReferrals} referrals`, icon: "group_add", color: "#4ade80", tab: "referrals" as Tab },
+                  { label: "Earned",   value: `₹${totalEarnings}`,                sub: `${(referredUsers || []).length} referrals`, icon: "group_add", color: "#4ade80", tab: "referrals" as Tab },
                 ].map((s, i) => (
                   <button
                     key={i}
@@ -909,16 +940,37 @@ function DashboardContent() {
                       <div className="flex-1 bg-black/50 border border-white/[0.06] px-4 py-2.5 font-mono text-[#0085FF] text-sm truncate">letsrevamp.in?ref={user.referralCode}</div>
                       <button onClick={copyLink} className="bg-[#FFD700] text-black px-6 py-2.5 font-black text-sm hover:bg-[#e6c300] transition-colors shrink-0">{copied ? "Copied! ✓" : "Copy Link"}</button>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-3 gap-3">
                       <div className="bg-black/30 border border-white/[0.05] p-5 text-center">
-                        <div className="font-headline font-black text-3xl text-[#FFD700]">₹{totalEarnings}</div>
-                        <p className="text-white/30 text-xs mt-1 uppercase tracking-wider">Total Earned</p>
+                        <div className="font-headline font-black text-2xl text-[#FFD700]">₹{totalEarnings}</div>
+                        <p className="text-white/30 text-[10px] mt-1 uppercase tracking-wider">Total Earned</p>
                       </div>
                       <div className="bg-black/30 border border-white/[0.05] p-5 text-center">
-                        <div className="font-headline font-black text-3xl">{user.totalReferrals}</div>
-                        <p className="text-white/30 text-xs mt-1 uppercase tracking-wider">People Referred</p>
+                        <div className="font-headline font-black text-2xl">₹{totalRedeemed || 0}</div>
+                        <p className="text-white/30 text-[10px] mt-1 uppercase tracking-wider">Redeemed</p>
+                      </div>
+                      <div className="bg-black/30 border border-white/[0.05] p-5 text-center border-l border-l-[#FFD700]/20">
+                        <div className="font-headline font-black text-2xl text-green-400">₹{availableBalance || 0}</div>
+                        <p className="text-white/30 text-[10px] mt-1 uppercase tracking-wider">Available</p>
                       </div>
                     </div>
+
+                    {availableBalance > 0 && (
+                      <form onSubmit={handleWithdraw} className="bg-white/[0.02] border border-[#FFD700]/20 p-5 mt-4 space-y-4">
+                        <h3 className="font-bold text-sm text-[#FFD700]">Withdraw Earnings</h3>
+                        <p className="text-white/40 text-[11px]">Minimum withdrawal is ₹100. Payouts are manually processed to your UPI within 48 hours.</p>
+                        <div className="flex gap-2">
+                          <input required type="number" min="100" max={availableBalance} placeholder="Amount (₹)" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} className="w-1/3 bg-black/50 border border-white/[0.06] px-3 py-2 text-sm text-white placeholder:text-white/20 outline-none focus:border-[#FFD700]/50" />
+                          <input required type="text" placeholder="Your UPI ID (e.g. name@okaxis)" value={withdrawUpi} onChange={(e) => setWithdrawUpi(e.target.value)} className="flex-1 bg-black/50 border border-white/[0.06] px-3 py-2 text-sm text-white placeholder:text-white/20 outline-none focus:border-[#FFD700]/50" />
+                          <button type="submit" disabled={withdrawSubmitting} className="bg-[#FFD700] text-black px-6 font-bold text-sm hover:bg-[#e6c300] transition-colors disabled:opacity-50 shrink-0">
+                            {withdrawSubmitting ? "..." : "Request"}
+                          </button>
+                        </div>
+                        {withdrawMsg.text && (
+                          <p className={`text-[11px] font-medium ${withdrawMsg.type === "error" ? "text-red-400" : "text-green-400"}`}>{withdrawMsg.text}</p>
+                        )}
+                      </form>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -939,6 +991,28 @@ function DashboardContent() {
                           <p className="text-white/25 text-xs">{u.email}</p>
                         </div>
                         <p className="text-white/20 text-xs font-mono">{new Date(u.createdAt).toLocaleDateString("en-IN")}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {(redemptions || []).length > 0 && (
+                <section>
+                  <h2 className="font-headline font-bold text-xs text-white/40 uppercase tracking-widest mb-3">Redemption History</h2>
+                  <div className="space-y-2">
+                    {(redemptions || []).map((r: any) => (
+                      <div key={r.id} className="flex justify-between items-center bg-[#0d0d0d] border border-white/[0.06] p-4">
+                        <div>
+                          <p className="font-bold text-sm">₹{r.amount}</p>
+                          <p className="text-white/25 text-[10px] uppercase truncate max-w-[150px]">{r.upiId}</p>
+                        </div>
+                        <div className="text-right flex flex-col justify-end items-end">
+                          <span className={`text-[9px] font-black px-2 py-0.5 border uppercase ${r.status === 'PAID' ? 'bg-green-500/10 text-green-400 border-green-500/20' : r.status === 'REJECTED' ? 'bg-red-500/10 text-red-500 border-red-500/20' : r.status === 'INITIATED' ? 'bg-[#FFD700]/10 text-[#FFD700] border-[#FFD700]/20' : 'bg-[#0085FF]/10 text-[#0085FF] border-[#0085FF]/20'}`}>
+                            {r.status}
+                          </span>
+                          <p className="text-white/20 text-[9px] font-mono mt-1">{new Date(r.createdAt).toLocaleDateString("en-IN")}</p>
+                        </div>
                       </div>
                     ))}
                   </div>

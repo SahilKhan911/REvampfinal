@@ -99,11 +99,18 @@ export async function PATCH(req: NextRequest) {
       // 2. Finalize referral code if temp
       let finalReferralCode = order.user?.referralCode || ''
       if (finalReferralCode.startsWith('tmp_')) {
+        const oldTempCode = finalReferralCode
         finalReferralCode = `REV-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
         await supabase
           .from('User')
           .update({ referralCode: finalReferralCode })
           .eq('id', order.userId)
+
+        // Cascade: update any users who were referred by the old temp code
+        await supabase
+          .from('User')
+          .update({ referredBy: finalReferralCode })
+          .eq('referredBy', oldTempCode)
       }
 
       // 3. Send confirmation email to buyer
