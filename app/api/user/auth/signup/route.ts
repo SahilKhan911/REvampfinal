@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
     const { data: user, error: insertError } = await supabase
       .from('User')
       .insert({
+        id: crypto.randomUUID(),
         name,
         email,
         phone,
