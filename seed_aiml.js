@@ -11,6 +11,8 @@ async function main() {
     update: {
       name: "AI & ML",
       tagline: "Agentic AI & Vibe Coding with REvampCurve | 1 Month Weekend Program | Build Real-World AI Products with LangChain, LangGraph, n8n & Kaggle Integration",
+      heroTitle: "Agentic AI &",
+      heroHighlight: "Vibe Coding",
       description: "Join our one-month cohort to master Vibe Coding, LangChain, n8n automation, and Agentic AI. Live weekend sessions with lifetime access.",
       features: [
         { title: "Vibe Coding Weekends", description: "Live sessions every Saturday & Sunday. Code together, build AI products in real-time, and get instant feedback from instructors.", icon: "weekend" },
@@ -23,6 +25,8 @@ async function main() {
       slug: cohortSlug,
       name: "AI & ML",
       tagline: "Agentic AI & Vibe Coding with REvampCurve | 1 Month Weekend Program | Build Real-World AI Products with LangChain, LangGraph, n8n & Kaggle Integration",
+      heroTitle: "Agentic AI &",
+      heroHighlight: "Vibe Coding",
       emoji: "🤖",
       accentHex: "#FF6B6B",
       description: "Join our one-month cohort to master Vibe Coding, LangChain, n8n automation, and Agentic AI. Live weekend sessions with lifetime access.",
