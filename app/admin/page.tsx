@@ -10,7 +10,7 @@ export default async function AdminDashboard() {
       orderBy: { createdAt: "desc" },
       include: { user: true, bundle: { include: { cohort: true } } }
     })
-  ]).catch(e => [0, 0, []]);
+  ]).catch(e => [0, 0, [] as any[]] as [number, number, any[]]);
 
   return (
     <div className="min-h-screen bg-[#131313] font-headline text-white">
@@ -239,7 +239,7 @@ export default async function AdminDashboard() {
             </div>
             <div className="font-mono text-[10px] text-[#a9c7ff] space-y-1">
               <p><span className="text-white/20">[14:32:01]</span> AUTH_SUCCESS: OPERATOR_ID_01 SESSION_START</p>
-              <p><span class="text-white/20">[14:35:12]</span> DB_QUERY: SELECT * FROM ORDERS WHERE STATUS='PENDING' (12 RESULTS)</p>
+              <p><span className="text-white/20">[14:35:12]</span> DB_QUERY: SELECT * FROM ORDERS WHERE STATUS='PENDING' (12 RESULTS)</p>
               <p><span className="text-white/20">[14:36:45]</span> CACHE_PURGE: COMPLETED IN 24MS</p>
               <p className="animate-pulse"><span className="text-white/20">[14:40:02]</span> LISTENING_FOR_INCOMING_WEBHOOKS...</p>
             </div>

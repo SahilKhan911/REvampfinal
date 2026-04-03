@@ -12,7 +12,6 @@ const config: Config = {
       colors: {
         "primary-fixed-dim": "#a9c7ff",
         "on-tertiary": "#2f3131",
-        "surface": "#131313",
         "on-primary-fixed": "#001b3d",
         "on-primary-container": "#002957",
         "surface-dim": "#131313",
@@ -20,7 +19,6 @@ const config: Config = {
         "on-error": "#690005",
         "outline-variant": "#404754",
         "on-secondary-fixed-variant": "#544600",
-        "background": "#131313",
         "tertiary-fixed": "#e2e2e2",
         "surface-container-highest": "#353534",
         "on-secondary-fixed": "#221b00",
@@ -33,7 +31,6 @@ const config: Config = {
         "on-tertiary-fixed": "#1a1c1c",
         "inverse-on-surface": "#313030",
         "secondary-fixed-dim": "#e9c400",
-        "primary": "#a9c7ff",
         "tertiary": "#c6c6c7",
         "primary-container": "#3a90ff",
         "on-primary-fixed-variant": "#00468b",
