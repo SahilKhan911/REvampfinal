@@ -180,8 +180,12 @@ function DashboardContent() {
   const handleSubscribe = useCallback(async (cohortId: string) => {
     setFollowLoading(cohortId)
     try {
+      setData((prev: any) => prev ? {
+        ...prev, 
+        subscriptions: [{ id: Math.random().toString(), cohort: { id: cohortId }, cohortId }, ...(prev.subscriptions || [])]
+      } : prev)
       await fetch("/api/user/subscriptions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cohortId }) })
-      const res = await fetch("/api/user/dashboard").then(r => r.json())
+      const res = await fetch("/api/user/dashboard", { cache: 'no-store' }).then(r => r.json())
       if (!res.error) setData(res)
     } catch (e) { console.error(e) }
     finally { setFollowLoading(null) }
@@ -190,8 +194,12 @@ function DashboardContent() {
   const handleUnsubscribe = useCallback(async (cohortId: string) => {
     setFollowLoading(cohortId)
     try {
+      setData((prev: any) => prev ? {
+        ...prev,
+        subscriptions: (prev.subscriptions || []).filter((s: any) => s.cohort?.id !== cohortId && s.cohortId !== cohortId)
+      } : prev)
       await fetch("/api/user/subscriptions", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cohortId }) })
-      const res = await fetch("/api/user/dashboard").then(r => r.json())
+      const res = await fetch("/api/user/dashboard", { cache: 'no-store' }).then(r => r.json())
       if (!res.error) setData(res)
     } catch (e) { console.error(e) }
     finally { setFollowLoading(null) }
@@ -303,8 +311,19 @@ function DashboardContent() {
         setWithdrawMsg({ text: "Request submitted! Check below for status.", type: "success" })
         setWithdrawAmount("")
         setWithdrawUpi("")
-        const fresh = await fetch("/api/user/dashboard").then(r => r.json())
-        if (!fresh.error) setData(fresh)
+        setLoading(true)
+        try {
+          const res = await fetch("/api/user/dashboard", { cache: 'no-store' }).then(r => r.json())
+          if (res.error) {
+            router.push("/login")
+          } else {
+            setData(res)
+          }
+        } catch {
+          router.push("/login")
+        } finally {
+          setLoading(false)
+        }
       }
     } catch {
       setWithdrawMsg({ text: "Something went wrong.", type: "error" })
