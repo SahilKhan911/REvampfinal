@@ -20,6 +20,7 @@ const DOMAIN_ICONS: Record<string, string> = {
   rocket:     "rocket_launch",
   users:      "group",
   award:      "military_tech",
+  compass:    "explore",
 }
 
 function getIcon(raw: string): string {
