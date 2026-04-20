@@ -65,17 +65,22 @@ export default async function AdminDashboard() {
           </div>
           <nav className="flex-1 flex flex-col gap-1 px-2">
             {[
-              { label: "OVERVIEW", icon: "dashboard", active: true },
-              { label: "WORKSHOPS", icon: "build" },
-              { label: "ORDERS", icon: "shopping_cart" },
-              { label: "USERS", icon: "group" },
-              { label: "SYSTEMS", icon: "terminal" },
+              { label: "OVERVIEW", icon: "dashboard", active: true, href: "/admin" },
+              { label: "WORKSHOPS", icon: "build", href: "#" },
+              { label: "ORDERS", icon: "shopping_cart", href: "/admin/orders" },
+              { label: "USERS", icon: "group", href: "/admin/users" },
+              { label: "SYSTEMS", icon: "terminal", href: "#" },
             ].map((item, i) => (
-              <a key={i} className={`${item.active ? "bg-[#3A90FF] text-[#131313] translate-x-1" : "text-white hover:bg-[#2A2A2A]"} px-4 py-3 flex items-center gap-3 w-full transition-all group`} href="#">
+              <a key={i} className={`${item.active ? "bg-[#3A90FF] text-[#131313] translate-x-1" : "text-white hover:bg-[#2A2A2A]"} px-4 py-3 flex items-center gap-3 w-full transition-all group`} href={item.href}>
                 <span className={`material-symbols-outlined ${item.active ? "" : "text-white/40 group-hover:text-[#a9c7ff]"}`} style={item.active ? {fontVariationSettings: "'FILL' 1"} : {}}>{item.icon}</span>
                 <span className="font-headline font-bold tracking-widest uppercase text-sm">{item.label}</span>
               </a>
             ))}
+            <a href="/admin/launchpad" className="text-white hover:bg-[#2A2A2A] px-4 py-3 flex items-center gap-3 w-full transition-all group border border-[#3A90FF]/20 mt-2">
+              <span className="material-symbols-outlined text-[#3A90FF]/60 group-hover:text-[#3A90FF] transition-colors">rocket_launch</span>
+              <span className="font-headline font-bold tracking-widest uppercase text-sm">LAUNCHPAD</span>
+              <span className="ml-auto text-[8px] font-black text-[#3A90FF] border border-[#3A90FF]/30 px-1.5 py-0.5">NEW</span>
+            </a>
           </nav>
           <div className="mt-auto px-4 flex flex-col gap-1">
             <div className="bg-[#0e0e0e] p-4 mb-4 border-l-4 border-[#ffdb3c]">

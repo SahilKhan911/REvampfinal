@@ -46,8 +46,12 @@ model User {
   connectionsSent Connection[]       @relation("ConnectionsSent")
   connectionsRecvd Connection[]      @relation("ConnectionsReceived")
   discussions     DiscussionPost[]
-  adminNotesGiven AdminNote[]        @relation("AdminAuthoredNotes")
-  adminNotes      AdminNote[]        @relation("UserTargetNotes")
+  adminNotesGiven      AdminNote[]          @relation("AdminAuthoredNotes")
+  adminNotes           AdminNote[]          @relation("UserTargetNotes")
+  launchpadProfile      LaunchpadProfile?
+  launchpadAttendances  LaunchpadAttendance[]
+  homeworkSubmissions   HomeworkSubmission[]
+  launchpadCertificates LaunchpadCertificate[]
 
   @@index([referralCode])
 }
@@ -320,6 +324,93 @@ model DiscussionPost {
   replies     DiscussionPost[] @relation("Replies")
 
   @@index([bundleId])
+  @@index([userId])
+}
+
+// ═══════════════════════════════════════════════
+// Launchpad Program Models
+// ═══════════════════════════════════════════════
+
+model LaunchpadProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  experienceLevel String   @default("beginner") // beginner | advanced
+  goals           Json     @default("[]")        // string[]
+  motivation      String?
+  sessionNotes    Json     @default("{}")        // { [sessionId]: string }
+  trackDeclared   String?                        // web | ai | security | oss
+  createdAt       DateTime @default(now())
+
+  user            User     @relation(fields: [userId], references: [id])
+}
+
+model LaunchpadSession {
+  id           String    @id @default(uuid())
+  week         Int
+  day          Int
+  title        String
+  subtitle     String?
+  topics       Json      @default("[]") // string[]
+  homework      String?
+  homeworkType  String?                  // github_url | text | done | none
+  resourceLinks Json     @default("[]") // [{label: string, url: string}]
+  sessionDate   DateTime?
+  joinLink      String?
+  recordingUrl  String?
+  isVisible     Boolean   @default(true)
+  isLive        Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+
+  attendances           LaunchpadAttendance[]
+  homeworkSubmissions   HomeworkSubmission[]
+
+  @@unique([week, day])
+  @@index([week])
+}
+
+model LaunchpadAttendance {
+  id        String   @id @default(uuid())
+  userId    String
+  sessionId String
+  markedAt  DateTime @default(now())
+
+  user      User             @relation(fields: [userId], references: [id])
+  session   LaunchpadSession @relation(fields: [sessionId], references: [id])
+
+  @@unique([userId, sessionId])
+  @@index([userId])
+  @@index([sessionId])
+}
+
+model HomeworkSubmission {
+  id          String    @id @default(uuid())
+  userId      String
+  sessionId   String
+  type        String    // github_url | text | done
+  content     String?
+  status      String    @default("submitted") // submitted | seen | verified
+  submittedAt DateTime  @default(now())
+  verifiedAt  DateTime?
+
+  user    User             @relation(fields: [userId], references: [id])
+  session LaunchpadSession @relation(fields: [sessionId], references: [id])
+
+  @@unique([userId, sessionId])
+  @@index([sessionId])
+  @@index([userId])
+}
+
+model LaunchpadCertificate {
+  id         String   @id @default(uuid())
+  userId     String
+  type       String   // completion | excellence | best_domain | participation
+  placement  Int?
+  domain     String?
+  uniqueCode String   @unique
+  issuedAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
   @@index([userId])
 }
 

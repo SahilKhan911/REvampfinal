@@ -4,9 +4,9 @@ import { useEffect, useState, useCallback, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 
-type Tab = "home" | "learning" | "orders" | "referrals" | "domains" | "achievements" | "resources" | "connections" | "settings"
+type Tab = "home" | "learning" | "orders" | "referrals" | "domains" | "achievements" | "resources" | "connections" | "settings" | "launchpad"
 
-const TABS: { id: Tab; label: string; icon: string }[] = [
+const BASE_TABS: { id: Tab; label: string; icon: string }[] = [
   { id: "home",         label: "Home",         icon: "home" },
   { id: "learning",     label: "My Learning",  icon: "school" },
   { id: "connections",  label: "Connections",  icon: "people" },
@@ -17,6 +17,8 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: "resources",    label: "Resources",    icon: "library_books" },
   { id: "settings",     label: "Settings",     icon: "settings" },
 ]
+
+const LAUNCHPAD_TAB: { id: Tab; label: string; icon: string } = { id: "launchpad", label: "Launchpad", icon: "rocket_launch" }
 
 const TAB_ALIASES: Record<string, Tab> = { overview: "home", workshops: "learning" }
 
@@ -91,6 +93,64 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
+// ── homework submit panel ─────────────────────────────
+function HomeworkSubmitPanel({ session, onSubmitted }: { session: any; onSubmitted: (result: any) => void }) {
+  const [value, setValue] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState("")
+
+  const type = session.homeworkType as string // github_url | text | done
+
+  const handleSubmit = async () => {
+    if (type !== 'done' && !value.trim()) { setError("Please enter a value."); return }
+    if (type === 'github_url' && !value.includes('github.com')) { setError("Must be a GitHub URL."); return }
+    setSubmitting(true); setError("")
+    const res = await fetch('/api/user/launchpad/homework', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: session.id, type, content: type === 'done' ? null : value.trim() }),
+    }).then(r => r.json())
+    setSubmitting(false)
+    if (res.error) { setError(res.error); return }
+    onSubmitted(res)
+  }
+
+  if (type === 'done') {
+    return (
+      <button
+        onClick={e => { e.stopPropagation(); handleSubmit() }}
+        disabled={submitting}
+        className="w-full flex items-center justify-center gap-2 py-2.5 border border-green-500/30 text-green-400 text-[10px] font-black uppercase tracking-wider hover:bg-green-500/10 transition-colors disabled:opacity-40"
+      >
+        <span className="material-symbols-outlined text-sm">check_circle</span>
+        {submitting ? 'Marking...' : 'Mark Homework as Done'}
+      </button>
+    )
+  }
+
+  return (
+    <div className="space-y-2" onClick={e => e.stopPropagation()}>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          className="flex-1 bg-[#060606] border border-white/[0.08] px-3 py-2 text-[11px] text-white placeholder:text-white/15 outline-none focus:border-white/20 transition-colors"
+          placeholder={type === 'github_url' ? 'https://github.com/you/repo' : 'Your response...'}
+          value={value}
+          onChange={e => { setValue(e.target.value); setError("") }}
+        />
+        <button
+          onClick={handleSubmit}
+          disabled={submitting}
+          className="px-4 py-2 bg-[#0085FF] text-white text-[10px] font-black uppercase tracking-wider hover:bg-[#0070DD] transition-colors disabled:opacity-40 whitespace-nowrap"
+        >
+          {submitting ? '...' : 'Submit'}
+        </button>
+      </div>
+      {error && <p className="text-[10px] text-red-400">{error}</p>}
+    </div>
+  )
+}
+
 // ── main content ─────────────────────────────────────
 function DashboardContent() {
   const router = useRouter()
@@ -129,6 +189,16 @@ function DashboardContent() {
   const [withdrawUpi, setWithdrawUpi] = useState("")
   const [withdrawSubmitting, setWithdrawSubmitting] = useState(false)
   const [withdrawMsg, setWithdrawMsg] = useState({ text: "", type: "" })
+
+  // ── launchpad tab state ───────────────────────────────
+  const [launchpadData, setLaunchpadData] = useState<any>(null)
+  const [launchpadLoading, setLaunchpadLoading] = useState(false)
+  const [launchpadWeek, setLaunchpadWeek] = useState(1)
+  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null)
+  const [sessionNotes, setSessionNotes] = useState<Record<string, string>>({})
+  const [noteSaveTimer, setNoteSaveTimer] = useState<Record<string, any>>({})
+  const [launchpadBadges, setLaunchpadBadges] = useState<any[]>([])
+  const [trackDeclaring, setTrackDeclaring] = useState(false)
 
   useEffect(() => {
     Promise.all([
@@ -266,6 +336,26 @@ function DashboardContent() {
 
   useEffect(() => { if (activeTab === "connections") loadConnections() }, [activeTab, loadConnections])
 
+  useEffect(() => {
+    if (activeTab === "launchpad" && !launchpadData && !launchpadLoading) {
+      setLaunchpadLoading(true)
+      fetch("/api/user/launchpad")
+        .then(r => r.json())
+        .then(d => {
+          if (!d.error) {
+            setLaunchpadData(d)
+            if (d.profile?.sessionNotes && typeof d.profile.sessionNotes === 'object') {
+              setSessionNotes(d.profile.sessionNotes as Record<string, string>)
+            }
+            // load badges in parallel
+            fetch('/api/user/launchpad/badges').then(r => r.json()).then(b => { if (Array.isArray(b)) setLaunchpadBadges(b) }).catch(() => {})
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLaunchpadLoading(false))
+    }
+  }, [activeTab, launchpadData, launchpadLoading])
+
   const handleAddSkill = () => {
     const s = skillInput.trim()
     if (s && !settingsForm.skills.includes(s)) {
@@ -352,6 +442,11 @@ function DashboardContent() {
   const unlockedSlugs = new Set((achievements?.unlocked || []).map((a: any) => a.slug))
   const xpProgress = user.nextLevelXp > 0 ? Math.min(100, Math.round((user.xp / user.nextLevelXp) * 100)) : 100
   const filteredResources = resourceFilter === "ALL" ? resources : resources.filter((r: any) => r.type === resourceFilter)
+
+  const hasLaunchpadAccess = (enrollments || []).some((e: any) => e.bundle?.cohort?.slug === 'launchpad' && e.status !== 'REVOKED')
+  const TABS = hasLaunchpadAccess
+    ? [BASE_TABS[0], BASE_TABS[1], LAUNCHPAD_TAB, ...BASE_TABS.slice(2)]
+    : BASE_TABS
 
   // ── shared input style ─────────────────────────────
   const inputCls = "w-full bg-[#0a0a0a] border border-white/[0.08] px-3 py-2.5 text-sm text-white placeholder:text-white/15 outline-none focus:border-[#0085FF]/60 transition-colors"
@@ -1338,6 +1433,715 @@ function DashboardContent() {
               <button onClick={handleLogout} className="w-full border border-red-500/20 text-red-400/60 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/[0.04] py-3 text-sm font-bold transition-all uppercase tracking-wider">
                 Log Out
               </button>
+            </div>
+          )}
+
+          {/* ──────────────────────── LAUNCHPAD TAB ─── */}
+          {activeTab === "launchpad" && (
+            <div className="animate-in fade-in duration-300 px-6 md:px-8 py-8 max-w-5xl space-y-8">
+
+              {launchpadLoading && (
+                <div className="flex items-center gap-3 py-16 text-white/20">
+                  <div className="w-5 h-5 border-2 border-[#0085FF] border-t-transparent rounded-full animate-spin" />
+                  <span className="text-sm">Loading your Launchpad...</span>
+                </div>
+              )}
+
+              {!launchpadLoading && !launchpadData && (
+                <div className="bg-[#0d0d0d] border border-dashed border-white/[0.06] p-16 text-center">
+                  <span className="material-symbols-outlined text-4xl text-white/10 block mb-3">rocket_launch</span>
+                  <p className="text-white/30 text-sm mb-1">Launchpad data unavailable.</p>
+                  <p className="text-white/15 text-xs">Contact your program coordinator if you believe this is an error.</p>
+                </div>
+              )}
+
+              {!launchpadLoading && launchpadData && (() => {
+                const { profile, sessions, bundle, peers, totalAttended, totalSessions } = launchpadData
+                const attendancePct = totalSessions > 0 ? Math.round((totalAttended / totalSessions) * 100) : 0
+                const goals: string[] = Array.isArray(profile?.goals) ? profile.goals : []
+                const isAdvanced = profile?.experienceLevel === "advanced"
+
+                // Find live session
+                const liveSession = sessions?.find((s: any) => s.isLive)
+
+                // Find today's session
+                const today = new Date()
+                today.setHours(0, 0, 0, 0)
+                const todaySession = sessions?.find((s: any) => {
+                  if (!s.sessionDate) return false
+                  const d = new Date(s.sessionDate)
+                  d.setHours(0, 0, 0, 0)
+                  return d.getTime() === today.getTime()
+                })
+
+                // Streak: consecutive attended sessions counting back from the most recent past session
+                const pastSessions = (sessions || [])
+                  .filter((s: any) => s.sessionDate && new Date(s.sessionDate) < new Date())
+                  .sort((a: any, b: any) => new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime())
+                let streak = 0
+                for (const s of pastSessions) {
+                  if (s.attended) streak++
+                  else break
+                }
+
+                // Next upcoming session (not today, not past)
+                const nextSession = (sessions || [])
+                  .filter((s: any) => {
+                    if (!s.sessionDate) return false
+                    const sd = new Date(s.sessionDate); sd.setHours(0,0,0,0)
+                    return sd > today
+                  })
+                  .sort((a: any, b: any) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime())[0]
+
+                // Mission today: single sentence directive
+                const lastMissed = pastSessions.find((s: any) => !s.attended && s.recordingUrl)
+                const missionText = liveSession
+                  ? `${liveSession.title} is LIVE NOW.`
+                  : todaySession
+                  ? `${todaySession.title} is today${todaySession.sessionDate ? ' at ' + new Date(todaySession.sessionDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : ''}.`
+                  : lastMissed
+                  ? `You missed W${lastMissed.week}D${lastMissed.day} · ${lastMissed.title}. The recording is ready.`
+                  : nextSession
+                  ? `Next session in ${Math.ceil((new Date(nextSession.sessionDate).getTime() - Date.now()) / 86400000)} day${Math.ceil((new Date(nextSession.sessionDate).getTime() - Date.now()) / 86400000) === 1 ? '' : 's'}: ${nextSession.title}.`
+                  : "You're all caught up. Keep checking for upcoming sessions."
+
+                const sessionsByWeek = [1,2,3,4].map(w => ({
+                  week: w,
+                  label: ["Orientation","Foundations","Deep Dive","Hackathon"][w-1],
+                  sessions: (sessions || []).filter((s: any) => s.week === w).sort((a: any, b: any) => a.day - b.day)
+                }))
+
+                const getSessionStatus = (s: any) => {
+                  if (s.attended) return "attended"
+                  if (s.isLive) return "live"
+                  if (!s.sessionDate) return "tbd"
+                  const sd = new Date(s.sessionDate); sd.setHours(0,0,0,0)
+                  const td = new Date(); td.setHours(0,0,0,0)
+                  if (sd.getTime() === td.getTime()) return "today"
+                  if (sd < td) return "missed"
+                  return "upcoming"
+                }
+
+                const statusChip = (status: string) => {
+                  const map: Record<string, string> = {
+                    attended: "bg-green-500/10 text-green-400 border-green-500/20",
+                    live:     "bg-red-500/10 text-red-400 border-red-500/20",
+                    today:    "bg-[#0085FF]/10 text-[#0085FF] border-[#0085FF]/20",
+                    missed:   "bg-white/[0.04] text-white/20 border-white/[0.06]",
+                    upcoming: "bg-white/[0.04] text-white/30 border-white/[0.06]",
+                    tbd:      "bg-white/[0.04] text-white/15 border-white/[0.04]",
+                  }
+                  const labels: Record<string, string> = { attended: "Attended", live: "LIVE NOW", today: "Today", missed: "Missed", upcoming: "Upcoming", tbd: "TBD" }
+                  return <span className={`text-[8px] font-black px-2 py-0.5 border uppercase tracking-wider ${map[status] || ""}`}>{labels[status] || status}</span>
+                }
+
+                // Track declaration: show if W3D5 is attended and track not yet declared
+                const w3d5 = sessions?.find((s: any) => s.week === 3 && s.day === 5)
+                const needsTrackDeclaration = w3d5?.attended && !profile?.trackDeclared
+
+                const TRACKS = [
+                  { id: 'web',      label: 'Web Dev',       icon: 'web',           color: '#3b82f6', desc: 'Build products people use. Frontend, backend, fullstack.' },
+                  { id: 'ai',       label: 'AI / ML',       icon: 'psychology',    color: '#a855f7', desc: 'Build systems that learn. Python, models, data, agents.' },
+                  { id: 'security', label: 'Cybersecurity', icon: 'security',      color: '#ef4444', desc: 'Break things to make them safer. CTFs, ethical hacking.' },
+                  { id: 'oss',      label: 'Open Source',   icon: 'code_blocks',   color: '#22c55e', desc: 'Build in public. Contribute to real projects, earn credibility.' },
+                ]
+
+                if (needsTrackDeclaration) {
+                  return (
+                    <div className="animate-in fade-in duration-300 flex flex-col items-center justify-center min-h-[60vh] gap-8 py-12">
+                      <div className="text-center">
+                        <span className="text-[9px] font-black text-[#0085FF] uppercase tracking-[0.25em] block mb-3">Week 3 Complete</span>
+                        <h2 className="font-headline font-black text-3xl mb-2">Which domain are you pursuing?</h2>
+                        <p className="text-white/30 text-sm max-w-sm mx-auto">You've experienced all 4 domains. This choice shapes your next steps, your hackathon track, and how we support you going forward.</p>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl">
+                        {TRACKS.map(t => (
+                          <button
+                            key={t.id}
+                            disabled={trackDeclaring}
+                            onClick={async () => {
+                              setTrackDeclaring(true)
+                              await fetch('/api/user/launchpad/track', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ track: t.id }),
+                              })
+                              setLaunchpadData((prev: any) => prev ? {
+                                ...prev,
+                                profile: { ...(prev.profile || {}), trackDeclared: t.id }
+                              } : prev)
+                              setTrackDeclaring(false)
+                            }}
+                            className="flex items-start gap-4 p-5 border border-white/[0.08] bg-[#0d0d0d] hover:border-white/20 hover:bg-[#111] transition-all text-left group disabled:opacity-40"
+                          >
+                            <span className="material-symbols-outlined text-2xl mt-0.5 shrink-0 transition-colors" style={{ color: t.color, fontVariationSettings: "'FILL' 1" }}>{t.icon}</span>
+                            <div>
+                              <p className="font-bold text-sm mb-1">{t.label}</p>
+                              <p className="text-[11px] text-white/35 leading-relaxed">{t.desc}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-white/15">You can change this later from Settings.</p>
+                    </div>
+                  )
+                }
+
+                return (
+                  <>
+                    {/* Hero */}
+                    <div className="relative border border-white/[0.05] overflow-hidden bg-[#0d0d0d]">
+                      <div className="absolute inset-0 brutalist-grid opacity-20 pointer-events-none" />
+                      <div className="absolute -top-16 -right-16 w-48 h-48 bg-[#0085FF]/[0.06] blur-3xl pointer-events-none" />
+                      <div className="relative px-6 py-6">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="material-symbols-outlined text-[#0085FF] text-base" style={{ fontVariationSettings: "'FILL' 1" }}>rocket_launch</span>
+                              <span className="text-[9px] font-black text-[#0085FF] uppercase tracking-[0.2em]">Launchpad 2026</span>
+                            </div>
+                            <h2 className="font-headline font-black text-3xl leading-none mb-2">
+                              {user.name.split(" ")[0]}<span className="text-[#0085FF]">.</span>
+                            </h2>
+                            {profile?.motivation && (
+                              <p className="text-white/30 text-xs italic max-w-md leading-relaxed">"{profile.motivation}"</p>
+                            )}
+                          </div>
+                          <div className="shrink-0 text-right flex flex-col items-end gap-2">
+                            <span className={`text-[9px] font-black px-3 py-1.5 border uppercase tracking-widest ${isAdvanced ? 'border-[#0085FF]/40 bg-[#0085FF]/10 text-[#0085FF]' : 'border-white/10 bg-white/[0.04] text-white/40'}`}>
+                              {isAdvanced ? "Advanced Track" : "Beginner Track"}
+                            </span>
+                            {profile?.trackDeclared && (() => {
+                              const trackMeta: Record<string, {label: string, color: string}> = {
+                                web: { label: 'Web Dev', color: '#3b82f6' },
+                                ai: { label: 'AI / ML', color: '#a855f7' },
+                                security: { label: 'Cybersecurity', color: '#ef4444' },
+                                oss: { label: 'Open Source', color: '#22c55e' },
+                              }
+                              const tm = trackMeta[profile.trackDeclared]
+                              return tm ? (
+                                <span className="text-[9px] font-black px-3 py-1.5 border uppercase tracking-widest" style={{ borderColor: `${tm.color}40`, color: tm.color, background: `${tm.color}10` }}>
+                                  {tm.label}
+                                </span>
+                              ) : null
+                            })()}
+                            {streak > 0 && (
+                              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-orange-500/10 border border-orange-500/20">
+                                <span className="text-base leading-none">🔥</span>
+                                <span className="text-[11px] font-black text-orange-400">{streak}</span>
+                                <span className="text-[9px] text-orange-400/60 font-bold uppercase">streak</span>
+                              </div>
+                            )}
+                            {bundle?.startDate && (
+                              <p className="text-[10px] text-white/20">
+                                Started {new Date(bundle.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Mission today card */}
+                        <div className={`mt-4 flex items-center gap-3 px-3 py-2.5 border ${liveSession ? 'border-red-500/30 bg-red-500/[0.04]' : todaySession ? 'border-[#0085FF]/20 bg-[#0085FF]/[0.03]' : 'border-white/[0.05] bg-white/[0.02]'}`}>
+                          <span className={`material-symbols-outlined text-base shrink-0 ${liveSession ? 'text-red-400' : todaySession ? 'text-[#0085FF]' : 'text-white/20'}`}>
+                            {liveSession ? 'videocam' : todaySession ? 'today' : 'arrow_forward'}
+                          </span>
+                          <p className="text-[11px] text-white/50 flex-1">{missionText}</p>
+                          {liveSession?.joinLink && (
+                            <a href={liveSession.joinLink} target="_blank" rel="noopener noreferrer"
+                              className="text-[9px] font-black text-red-400 border border-red-500/30 px-3 py-1.5 hover:bg-red-500/10 transition-colors uppercase tracking-wider shrink-0">
+                              Join
+                            </a>
+                          )}
+                          {!liveSession && lastMissed?.recordingUrl && (
+                            <a href={lastMissed.recordingUrl} target="_blank" rel="noopener noreferrer"
+                              className="text-[9px] font-black text-white/30 border border-white/[0.08] px-3 py-1.5 hover:text-white/60 transition-colors uppercase tracking-wider shrink-0">
+                              Watch
+                            </a>
+                          )}
+                        </div>
+
+                        {/* Session heatmap */}
+                        <div className="mt-5 pt-5 border-t border-white/[0.05]">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-[9px] font-black text-white/20 uppercase tracking-wider">Attendance</span>
+                            <span className="text-[9px] font-mono text-white/30">{totalAttended}/{totalSessions} · {attendancePct}%</span>
+                          </div>
+                          {/* 4×5 heatmap grid */}
+                          <div className="grid grid-cols-5 gap-1.5 mb-3">
+                            {[1,2,3,4].flatMap(w =>
+                              [1,2,3,4,5].map(d => {
+                                const s = sessions?.find((x: any) => x.week === w && x.day === d)
+                                if (!s) return (
+                                  <div key={`${w}-${d}`} className="h-6 bg-white/[0.03] border border-dashed border-white/[0.04]" title={`W${w}D${d}`} />
+                                )
+                                const st = getSessionStatus(s)
+                                const cellColor = st === 'attended' ? 'bg-[#0085FF] border-[#0085FF]/60'
+                                  : st === 'live' ? 'bg-red-500 border-red-500 animate-pulse'
+                                  : st === 'today' ? 'bg-[#0085FF]/40 border-[#0085FF]/50'
+                                  : st === 'missed' ? 'bg-red-900/40 border-red-900/30'
+                                  : 'bg-white/[0.04] border-white/[0.06]'
+                                return (
+                                  <div
+                                    key={s.id}
+                                    className={`h-6 border ${cellColor} cursor-pointer transition-all hover:opacity-80`}
+                                    title={`W${w}D${d} · ${s.title}`}
+                                    onClick={() => { setLaunchpadWeek(w); setExpandedSessionId(s.id) }}
+                                  />
+                                )
+                              })
+                            )}
+                          </div>
+                          {/* week labels */}
+                          <div className="grid grid-cols-4 gap-1.5 mb-3">
+                            {['Orientation','Foundations','Deep Dive','Hackathon'].map((l, i) => (
+                              <p key={l} className="text-[8px] text-white/15 font-bold uppercase tracking-wider text-center col-span-1">{`W${i+1}`}</p>
+                            ))}
+                          </div>
+                          {/* cert thresholds */}
+                          <div className="flex items-center gap-4 mt-2">
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-2 h-2 bg-[#0085FF]" />
+                              <span className="text-[8px] text-white/20">Attended</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-2 h-2 bg-red-900/50 border border-red-900/30" />
+                              <span className="text-[8px] text-white/20">Missed</span>
+                            </div>
+                            <span className={`ml-auto text-[9px] font-bold ${attendancePct >= 80 ? 'text-green-400' : attendancePct >= 50 ? 'text-yellow-400' : 'text-white/20'}`}>
+                              {attendancePct >= 80 ? '✓ Completion cert' : attendancePct >= 50 ? '⚡ Participation cert · need 80% for Completion' : `${80 - attendancePct}% more for Participation cert`}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* LIVE NOW banner */}
+                    {liveSession && (
+                      <div className="border border-red-500/30 bg-red-500/[0.04] p-4 flex items-center gap-4">
+                        <span className="w-2 h-2 bg-red-500 animate-ping shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-sm font-black text-red-400 uppercase tracking-wide">Session is LIVE NOW</p>
+                          <p className="text-white/50 text-xs mt-0.5">W{liveSession.week}D{liveSession.day} · {liveSession.title}</p>
+                        </div>
+                        {liveSession.joinLink && (
+                          <a href={liveSession.joinLink} target="_blank" rel="noopener noreferrer" className="shrink-0 bg-red-500 text-white px-5 py-2.5 font-black text-xs uppercase tracking-widest hover:bg-red-400 transition-colors">
+                            JOIN NOW
+                          </a>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Today's session */}
+                    {todaySession && !liveSession && (
+                      <div className="border border-[#0085FF]/30 bg-[#0085FF]/[0.04] p-5">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <p className="text-[9px] font-black text-[#0085FF] uppercase tracking-[0.15em] mb-1">Today's Session · W{todaySession.week}D{todaySession.day}</p>
+                            <p className="font-bold text-base">{todaySession.title}</p>
+                            {Array.isArray(todaySession.topics) && todaySession.topics.length > 0 && (
+                              <ul className="mt-3 space-y-1">
+                                {todaySession.topics.slice(0, 3).map((t: string, i: number) => (
+                                  <li key={i} className="text-white/40 text-xs flex items-start gap-2">
+                                    <span className="text-[#0085FF]/40 mt-0.5 shrink-0">—</span>{t}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                            {todaySession.homework && (
+                              <div className="mt-3 pt-3 border-t border-white/[0.05]">
+                                <p className="text-[9px] font-black text-white/20 uppercase tracking-wider mb-1">Homework</p>
+                                <p className="text-white/40 text-xs italic">{todaySession.homework}</p>
+                              </div>
+                            )}
+                          </div>
+                          {todaySession.joinLink && (
+                            <a href={todaySession.joinLink} target="_blank" rel="noopener noreferrer" className="shrink-0 bg-[#0085FF] text-white px-5 py-2.5 font-black text-xs uppercase tracking-widest hover:bg-[#0070DD] transition-colors">
+                              Join Session
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Skills acquired */}
+                    {(() => {
+                      const SKILL_MAP: Record<string, string[]> = {
+                        '2-1': ['Terminal', 'Git', 'GitHub'],
+                        '2-2': ['Python'],
+                        '2-3': ['HTML', 'CSS'],
+                        '2-4': ['JavaScript', 'APIs'],
+                        '2-5': ['Mini Project'],
+                        '3-1': ['React (intro)', 'Node.js (intro)'],
+                        '3-2': ['AI/ML', 'Prompt Engineering'],
+                        '3-3': ['CTF Basics', 'SQL Injection'],
+                        '3-4': ['Open Source', 'Git PRs'],
+                        '3-5': ['LinkedIn', 'Developer Branding'],
+                      }
+                      const unlockedSkills = (sessions || [])
+                        .filter((s: any) => s.attended)
+                        .flatMap((s: any) => SKILL_MAP[`${s.week}-${s.day}`] || [])
+                      if (unlockedSkills.length === 0) return null
+                      return (
+                        <section>
+                          <h3 className="font-headline font-bold text-xs text-white/40 uppercase tracking-[0.15em] flex items-center gap-2 mb-4">
+                            <span className="material-symbols-outlined text-sm text-green-400">bolt</span>
+                            Skills Acquired
+                          </h3>
+                          <div className="flex flex-wrap gap-2">
+                            {unlockedSkills.map((skill: string) => (
+                              <span key={skill} className="text-[10px] font-bold border border-green-500/20 bg-green-500/[0.06] text-green-400/80 px-3 py-1.5 uppercase tracking-wider">
+                                {skill}
+                              </span>
+                            ))}
+                          </div>
+                        </section>
+                      )
+                    })()}
+
+                    {/* Goals */}
+                    {goals.length > 0 && (
+                      <section>
+                        <h3 className="font-headline font-bold text-xs text-white/40 uppercase tracking-[0.15em] flex items-center gap-2 mb-4">
+                          <span className="material-symbols-outlined text-sm text-[#0085FF]">flag</span>
+                          Your Goals
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {goals.map((g: string) => (
+                            <span key={g} className="text-[10px] font-bold border border-[#0085FF]/30 bg-[#0085FF]/[0.06] text-[#0085FF]/80 px-3 py-1.5 uppercase tracking-wider">
+                              {g.replace(/_/g, ' ')}
+                            </span>
+                          ))}
+                        </div>
+                      </section>
+                    )}
+
+                    {/* 4-Week Curriculum */}
+                    <section>
+                      <h3 className="font-headline font-bold text-xs text-white/40 uppercase tracking-[0.15em] flex items-center gap-2 mb-4">
+                        <span className="material-symbols-outlined text-sm text-[#0085FF]">calendar_month</span>
+                        Program Curriculum
+                      </h3>
+
+                      {/* Week selector */}
+                      <div className="flex gap-0 mb-5 border border-white/[0.06] w-fit">
+                        {[1,2,3,4].map(w => (
+                          <button
+                            key={w}
+                            onClick={() => setLaunchpadWeek(w)}
+                            className={`px-4 py-2.5 text-xs font-black uppercase tracking-widest transition-colors border-r last:border-r-0 border-white/[0.06] ${launchpadWeek === w ? 'bg-[#0085FF] text-white' : 'text-white/25 hover:text-white/60 hover:bg-white/[0.03]'}`}
+                          >
+                            W{w}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Session cards for selected week */}
+                      {(() => {
+                        const wk = sessionsByWeek.find(w => w.week === launchpadWeek)
+                        if (!wk) return <p className="text-white/20 text-xs">No sessions created for this week yet.</p>
+                        return (
+                          <div>
+                            <div className="flex items-center gap-2 mb-4">
+                              <span className="text-[10px] font-black text-[#0085FF] uppercase tracking-[0.2em]">Week {launchpadWeek}</span>
+                              <span className="text-white/20 text-[10px]">— {wk.label}</span>
+                            </div>
+                            <div className="space-y-1.5">
+                              {wk.sessions.length === 0 && <p className="text-white/20 text-xs italic">Sessions coming soon.</p>}
+                              {wk.sessions.map((s: any) => {
+                                const status = getSessionStatus(s)
+                                const isExpanded = expandedSessionId === s.id
+                                const resources: any[] = Array.isArray(s.resourceLinks) ? s.resourceLinks : []
+                                const noteVal = sessionNotes[s.id] ?? ''
+
+                                const borderClass = status === 'attended' ? 'border-green-500/20 bg-green-500/[0.02]'
+                                  : status === 'live' ? 'border-red-500/40 bg-red-500/[0.03]'
+                                  : status === 'today' ? 'border-[#0085FF]/40 bg-[#0085FF]/[0.03]'
+                                  : status === 'missed' ? 'border-white/[0.04] bg-[#0a0a0a]'
+                                  : status === 'tbd' ? 'border-dashed border-white/[0.04] bg-[#0d0d0d]'
+                                  : 'border-white/[0.06] bg-[#0d0d0d]'
+
+                                const leftBarClass = status === 'attended' ? 'bg-green-500'
+                                  : status === 'live' ? 'bg-red-500'
+                                  : status === 'today' ? 'bg-[#0085FF]'
+                                  : status === 'missed' ? 'bg-white/10'
+                                  : 'bg-transparent'
+
+                                return (
+                                  <div key={s.id} className={`border transition-all relative overflow-hidden ${borderClass}`}>
+                                    {/* left status bar */}
+                                    <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${leftBarClass}`} />
+
+                                    {/* header row — click to expand */}
+                                    <div
+                                      className="flex items-center gap-3 px-4 py-3.5 pl-5 cursor-pointer select-none"
+                                      onClick={() => setExpandedSessionId(isExpanded ? null : s.id)}
+                                    >
+                                      <div className="shrink-0 w-6 text-center">
+                                        {status === 'attended' ? (
+                                          <span className="material-symbols-outlined text-green-400 text-base" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                                        ) : status === 'live' ? (
+                                          <span className="w-2 h-2 bg-red-500 rounded-full animate-ping block mx-auto mt-1" />
+                                        ) : (
+                                          <span className="text-[10px] font-black text-white/20 block">D{s.day}</span>
+                                        )}
+                                      </div>
+
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <p className={`font-bold text-sm leading-tight ${status === 'missed' ? 'text-white/30' : ''}`}>{s.title}</p>
+                                          {statusChip(status)}
+                                        </div>
+                                        {s.sessionDate && (
+                                          <p className="text-[10px] text-white/20 mt-0.5">
+                                            {new Date(s.sessionDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                          </p>
+                                        )}
+                                      </div>
+
+                                      {/* action buttons — stop propagation so clicks don't toggle expand */}
+                                      <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
+                                        {s.joinLink && (status === 'today' || status === 'live') && (
+                                          <a href={s.joinLink} target="_blank" rel="noopener noreferrer"
+                                            className={`text-[9px] font-black px-3 py-1.5 uppercase tracking-wider transition-colors whitespace-nowrap ${status === 'live' ? 'bg-red-500 text-white hover:bg-red-400' : 'border border-[#0085FF]/40 text-[#0085FF] hover:bg-[#0085FF]/10'}`}>
+                                            {status === 'live' ? 'Join Now' : 'Join'}
+                                          </a>
+                                        )}
+                                      </div>
+                                      <span className="material-symbols-outlined text-[14px] text-white/15 shrink-0">
+                                        {isExpanded ? 'expand_less' : 'expand_more'}
+                                      </span>
+                                    </div>
+
+                                    {/* expanded panel */}
+                                    {isExpanded && (
+                                      <div className="border-t border-white/[0.05] px-5 py-4 space-y-4">
+                                        {/* topics */}
+                                        {Array.isArray(s.topics) && s.topics.length > 0 && (
+                                          <div>
+                                            <p className="text-[8px] font-black text-white/20 uppercase tracking-[0.15em] mb-2">What We Cover</p>
+                                            <ul className="space-y-1.5">
+                                              {s.topics.map((t: string, i: number) => (
+                                                <li key={i} className="text-[11px] text-white/40 flex items-start gap-2">
+                                                  <span className="text-[#0085FF]/30 mt-px shrink-0">—</span>{t}
+                                                </li>
+                                              ))}
+                                            </ul>
+                                          </div>
+                                        )}
+
+                                        {/* homework */}
+                                        {s.homework && (
+                                          <div className="space-y-2">
+                                            <div className="bg-[#0085FF]/[0.04] border border-[#0085FF]/10 px-3 py-3">
+                                              <p className="text-[8px] font-black text-[#0085FF]/60 uppercase tracking-[0.15em] mb-1.5">Homework</p>
+                                              <p className="text-[11px] text-white/50 leading-relaxed">{s.homework}</p>
+                                            </div>
+                                            {/* submission UI */}
+                                            {s.homeworkType && s.homeworkType !== 'none' && (() => {
+                                              const sub = s.homework_submission
+                                              const statusColor = sub?.status === 'verified' ? 'text-green-400' : sub?.status === 'seen' ? 'text-[#0085FF]' : 'text-yellow-400'
+                                              const statusLabel = sub?.status === 'verified' ? 'Verified ✓' : sub?.status === 'seen' ? 'Seen by mentor' : 'Submitted · pending review'
+                                              if (sub) {
+                                                return (
+                                                  <div className="flex items-center gap-3 px-3 py-2.5 border border-white/[0.06] bg-[#0d0d0d]">
+                                                    <span className="material-symbols-outlined text-base text-green-400" style={{ fontVariationSettings: "'FILL' 1" }}>task_alt</span>
+                                                    <div className="flex-1 min-w-0">
+                                                      {sub.content && <p className="text-[10px] text-white/40 truncate">{sub.content}</p>}
+                                                      <p className={`text-[9px] font-bold ${statusColor}`}>{statusLabel}</p>
+                                                    </div>
+                                                    <button
+                                                      className="text-[9px] text-white/20 hover:text-white/40 transition-colors"
+                                                      onClick={e => {
+                                                        e.stopPropagation()
+                                                        setLaunchpadData((prev: any) => prev ? {
+                                                          ...prev,
+                                                          sessions: prev.sessions.map((x: any) => x.id === s.id ? { ...x, homework_submission: null } : x)
+                                                        } : prev)
+                                                      }}
+                                                    >Edit</button>
+                                                  </div>
+                                                )
+                                              }
+                                              return (
+                                                <HomeworkSubmitPanel
+                                                  session={s}
+                                                  onSubmitted={(result: any) => {
+                                                    setLaunchpadData((prev: any) => prev ? {
+                                                      ...prev,
+                                                      sessions: prev.sessions.map((x: any) => x.id === s.id ? { ...x, homework_submission: result } : x)
+                                                    } : prev)
+                                                  }}
+                                                />
+                                              )
+                                            })()}
+                                          </div>
+                                        )}
+
+                                        {/* resources */}
+                                        {resources.length > 0 && (
+                                          <div>
+                                            <p className="text-[8px] font-black text-white/20 uppercase tracking-[0.15em] mb-2">Resources</p>
+                                            <div className="flex flex-wrap gap-2">
+                                              {resources.map((r: any, i: number) => (
+                                                <a key={i} href={r.url} target="_blank" rel="noopener noreferrer"
+                                                  className="text-[10px] font-bold border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20 px-3 py-1.5 transition-colors flex items-center gap-1.5">
+                                                  <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+                                                  {r.label}
+                                                </a>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
+
+                                        {/* recording */}
+                                        {s.recordingUrl && (
+                                          <a href={s.recordingUrl} target="_blank" rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-2 text-[10px] font-black border border-white/[0.08] text-white/40 hover:text-white hover:border-white/20 px-4 py-2 transition-colors uppercase tracking-wider">
+                                            <span className="material-symbols-outlined text-[14px]">play_circle</span>
+                                            Watch Recording
+                                          </a>
+                                        )}
+
+                                        {/* personal notes */}
+                                        <div>
+                                          <p className="text-[8px] font-black text-white/20 uppercase tracking-[0.15em] mb-2">My Notes</p>
+                                          <textarea
+                                            className="w-full bg-[#060606] border border-white/[0.06] px-3 py-2.5 text-[11px] text-white/50 placeholder:text-white/15 outline-none focus:border-white/[0.15] transition-colors resize-none font-body"
+                                            rows={3}
+                                            placeholder="Write your notes for this session..."
+                                            value={noteVal}
+                                            onClick={e => e.stopPropagation()}
+                                            onChange={e => {
+                                              const val = e.target.value
+                                              setSessionNotes(prev => ({ ...prev, [s.id]: val }))
+                                              setNoteSaveTimer(prev => {
+                                                if (prev[s.id]) clearTimeout(prev[s.id])
+                                                return {
+                                                  ...prev,
+                                                  [s.id]: setTimeout(() => {
+                                                    fetch('/api/user/launchpad/notes', {
+                                                      method: 'PATCH',
+                                                      headers: { 'Content-Type': 'application/json' },
+                                                      body: JSON.stringify({ sessionId: s.id, note: val }),
+                                                    })
+                                                  }, 1000)
+                                                }
+                                              })
+                                            }}
+                                          />
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )
+                      })()}
+                    </section>
+
+                    {/* REcoins info */}
+                    <section>
+                      <h3 className="font-headline font-bold text-xs text-white/40 uppercase tracking-[0.15em] flex items-center gap-2 mb-4">
+                        <span className="material-symbols-outlined text-sm text-[#FFD700]">paid</span>
+                        REcoins — Week 4 Hackathon
+                      </h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                        {[
+                          { label: "1st Place", coins: "■1,000", color: "#FFD700" },
+                          { label: "2nd Place", coins: "■600", color: "#C0C0C0" },
+                          { label: "3rd Place", coins: "■300", color: "#CD7F32" },
+                          { label: "Best Domain ×4", coins: "■200", color: "#8b5cf6" },
+                          { label: "Participation", coins: "■100", color: "#4ade80" },
+                        ].map(r => (
+                          <div key={r.label} className="bg-[#0d0d0d] border border-white/[0.06] p-3 text-center">
+                            <p className="font-headline font-black text-lg leading-none" style={{ color: r.color }}>{r.coins}</p>
+                            <p className="text-[9px] text-white/25 mt-1 uppercase tracking-wider">{r.label}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-white/20 mt-3">REcoins are redeemable as direct discounts on any future REvamp cohort. Valid 12 months from issue.</p>
+                    </section>
+
+                    {/* Profile checklist */}
+                    {/* Badge wall */}
+                    {launchpadBadges.length > 0 && (
+                      <section>
+                        <h3 className="font-headline font-bold text-xs text-white/40 uppercase tracking-[0.15em] flex items-center gap-2 mb-4">
+                          <span className="material-symbols-outlined text-sm text-[#FFD700]">military_tech</span>
+                          Badges
+                          <span className="text-white/20 font-normal normal-case tracking-normal text-[10px]">
+                            {launchpadBadges.filter(b => b.earned).length}/{launchpadBadges.length} earned
+                          </span>
+                        </h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                          {launchpadBadges.map((b: any) => (
+                            <div
+                              key={b.id}
+                              title={b.desc}
+                              className={`flex flex-col items-center gap-1.5 p-3 border text-center transition-all ${b.earned ? 'border-[#FFD700]/30 bg-[#FFD700]/[0.04]' : 'border-white/[0.04] bg-[#0d0d0d] opacity-35'}`}
+                            >
+                              <span
+                                className={`material-symbols-outlined text-xl ${b.earned ? 'text-[#FFD700]' : 'text-white/20'}`}
+                                style={b.earned ? { fontVariationSettings: "'FILL' 1" } : {}}
+                              >
+                                {b.icon}
+                              </span>
+                              <p className={`text-[9px] font-black uppercase tracking-wider leading-tight ${b.earned ? 'text-white/70' : 'text-white/20'}`}>{b.label}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    )}
+
+                    <section>
+                      <h3 className="font-headline font-bold text-xs text-white/40 uppercase tracking-[0.15em] flex items-center gap-2 mb-4">
+                        <span className="material-symbols-outlined text-sm text-white/30">checklist</span>
+                        Profile Checklist
+                      </h3>
+                      <div className="space-y-2">
+                        {[
+                          { label: "GitHub account", done: !!user.githubUrl, cta: "Add in Settings →", link: false },
+                          { label: "LinkedIn profile", done: !!user.linkedinUrl, cta: "Add in Settings →", link: false },
+                        ].map(item => (
+                          <div key={item.label} className={`flex items-center gap-3 p-3 border ${item.done ? 'border-green-500/20 bg-green-500/[0.03]' : 'border-white/[0.06] bg-[#0d0d0d]'}`}>
+                            <span className={`material-symbols-outlined text-base ${item.done ? 'text-green-400' : 'text-white/15'}`} style={{ fontVariationSettings: item.done ? "'FILL' 1" : "" }}>
+                              {item.done ? 'check_circle' : 'radio_button_unchecked'}
+                            </span>
+                            <span className={`text-sm flex-1 ${item.done ? 'text-white/50 line-through' : ''}`}>{item.label}</span>
+                            {!item.done && <button onClick={() => switchTab("settings")} className="text-[10px] font-bold text-[#0085FF] hover:underline">{item.cta}</button>}
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+
+                    {/* Cohort peers */}
+                    {peers && peers.length > 0 && (
+                      <section>
+                        <h3 className="font-headline font-bold text-xs text-white/40 uppercase tracking-[0.15em] flex items-center gap-2 mb-4">
+                          <span className="material-symbols-outlined text-sm text-white/30">group</span>
+                          Your Cohort — {peers.length + 1} students
+                        </h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {peers.map((p: any) => (
+                            <div key={p.id} className="bg-[#0d0d0d] border border-white/[0.05] p-3 flex items-center gap-2">
+                              <div className="w-7 h-7 bg-[#0085FF]/20 flex items-center justify-center shrink-0">
+                                <span className="text-[9px] font-black text-[#0085FF]">{p.name?.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0,2)}</span>
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold truncate">{p.name?.split(" ")[0]}</p>
+                                {p.githubUrl && <a href={p.githubUrl} target="_blank" rel="noopener noreferrer" className="text-[9px] text-[#0085FF]/60 hover:text-[#0085FF] transition-colors">GitHub ↗</a>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    )}
+                  </>
+                )
+              })()}
+
             </div>
           )}
 
