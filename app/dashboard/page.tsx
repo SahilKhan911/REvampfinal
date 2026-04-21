@@ -200,8 +200,9 @@ function DashboardContent() {
   const [launchpadBadges, setLaunchpadBadges] = useState<any[]>([])
   const [trackDeclaring, setTrackDeclaring] = useState(false)
 
-  useEffect(() => {
-    Promise.all([
+  const loadDashboardData = useCallback((silent = false) => {
+    if (!silent) setLoading(true)
+    return Promise.all([
       fetch("/api/user/dashboard").then(r => r.json()),
       fetch("/api/cohorts").then(r => r.json()).catch(() => []),
       fetch("/api/announcements").then(r => r.json()).catch(() => []),
@@ -225,8 +226,25 @@ function DashboardContent() {
         twitterUrl: dashData.user.twitterUrl || "",
         skills: Array.isArray(dashData.user.skills) ? dashData.user.skills : [],
       })
-    }).catch(() => router.push("/login")).finally(() => setLoading(false))
+    }).catch(() => { if (!silent) router.push("/login") }).finally(() => { if (!silent) setLoading(false) })
   }, [router])
+
+  useEffect(() => { loadDashboardData() }, [loadDashboardData])
+
+  // Auto-refresh when user returns to this tab (e.g. after checkout in another tab)
+  useEffect(() => {
+    let lastVisible = Date.now()
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        // Only refresh if away for > 10 seconds to avoid thrashing
+        if (Date.now() - lastVisible > 10_000) loadDashboardData(true)
+      } else {
+        lastVisible = Date.now()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [loadDashboardData])
 
   useEffect(() => { setActiveTab(tabParam) }, [tabParam])
 
@@ -295,6 +313,16 @@ function DashboardContent() {
         const peersRes = await fetch(`/api/workshop/peers?bundleId=${expandedWorkshop}`).then(r => r.json()).catch(() => ({ peers: [] }))
         setWorkshopPeers(prev => ({ ...prev, [expandedWorkshop!]: peersRes.peers || [] }))
       }
+      // Refresh launchpad peers to update connection state
+      setLaunchpadData((prev: any) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          peers: (prev.peers || []).map((p: any) =>
+            p.id === toUserId ? { ...p, connectionState: 'pending_out' } : p
+          ),
+        }
+      })
     } catch {}
     finally { setConnectingTo(null) }
   }, [expandedWorkshop])
@@ -333,6 +361,24 @@ function DashboardContent() {
     } catch {}
     finally { setConnectionActionLoading(null) }
   }, [loadConnections])
+
+  const handleAcceptConnection = useCallback(async (connectionId: string) => {
+    if (!connectionId) return
+    setConnectionActionLoading(connectionId)
+    try {
+      await fetch("/api/connections", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ connectionId, action: "ACCEPTED" }) })
+      setLaunchpadData((prev: any) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          peers: (prev.peers || []).map((p: any) =>
+            p.connectionId === connectionId ? { ...p, connectionState: 'connected' } : p
+          ),
+        }
+      })
+    } catch {}
+    finally { setConnectionActionLoading(null) }
+  }, [])
 
   useEffect(() => { if (activeTab === "connections") loadConnections() }, [activeTab, loadConnections])
 
@@ -443,7 +489,9 @@ function DashboardContent() {
   const xpProgress = user.nextLevelXp > 0 ? Math.min(100, Math.round((user.xp / user.nextLevelXp) * 100)) : 100
   const filteredResources = resourceFilter === "ALL" ? resources : resources.filter((r: any) => r.type === resourceFilter)
 
-  const hasLaunchpadAccess = (enrollments || []).some((e: any) => e.bundle?.cohort?.slug === 'launchpad' && e.status !== 'REVOKED')
+  const hasLaunchpadAccess = (enrollments || []).some((e: any) =>
+    (e.bundle?.cohortSlug === 'launchpad' || e.bundle?.cohort?.slug === 'launchpad') && e.status !== 'REVOKED'
+  )
   const TABS = hasLaunchpadAccess
     ? [BASE_TABS[0], BASE_TABS[1], LAUNCHPAD_TAB, ...BASE_TABS.slice(2)]
     : BASE_TABS
@@ -566,204 +614,209 @@ function DashboardContent() {
 
           {/* ─────────────────────────────── HOME TAB ─── */}
           {activeTab === "home" && (
-            <div className="animate-in fade-in duration-300">
+            <div className="animate-in fade-in duration-300 min-h-screen" style={{ background: 'radial-gradient(ellipse 80% 40% at 60% -10%, rgba(0,133,255,0.08) 0%, transparent 70%), radial-gradient(ellipse 50% 30% at 100% 50%, rgba(139,92,246,0.05) 0%, transparent 60%), #060606' }}>
 
-              {/* Hero */}
-              <div className="relative border-b border-white/[0.05] overflow-hidden">
-                {/* Dot grid bg */}
-                <div className="absolute inset-0 brutalist-grid opacity-40 pointer-events-none" />
-                {/* Blue glow top-right */}
-                <div className="absolute -top-20 -right-20 w-64 h-64 bg-[#0085FF]/[0.07] blur-3xl pointer-events-none" />
-
-                <div className="relative flex items-center justify-between gap-6 px-6 md:px-8 py-8">
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="w-1.5 h-1.5 bg-green-400 animate-pulse" />
-                      <span className="text-[10px] text-white/25 font-bold uppercase tracking-[0.15em]">Active</span>
-                    </div>
-                    <h1 className="font-headline font-black text-5xl md:text-6xl tracking-tight leading-none">
-                      {user.name.split(" ")[0]}<span className="text-[#0085FF]">.</span>
-                    </h1>
-                    <div className="flex items-center gap-2.5 mt-3 mb-4">
-                      <span className="bg-[#0085FF] text-white text-[9px] font-black px-2 py-0.5 uppercase tracking-widest">Level {user.level}</span>
-                      <span className="text-white/35 text-sm font-medium">{user.levelName}</span>
-                    </div>
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2 text-[11px] text-white/25">
-                        <span>{user.xp} XP</span>
-                        <span className="text-white/[0.08]">·</span>
-                        <span>{user.nextLevelXp - user.xp} XP to next level</span>
-                      </div>
-                      <div className="relative h-1 bg-white/[0.06] w-48 md:w-64 overflow-hidden">
-                        <div className="h-full bg-[#0085FF] transition-all duration-1000 relative" style={{ width: `${xpProgress}%` }}>
-                          <div className="absolute inset-0 animate-shimmer" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <XPRing progress={xpProgress} level={user.level} />
-                </div>
-              </div>
-
-              {/* Announcement ticker */}
               <AnnouncementTicker items={announcements} />
 
-              {/* Stats strip */}
-              <div className="grid grid-cols-2 md:grid-cols-4 border-b border-white/[0.05]">
-                {[
-                  { label: "Level",    value: user.level,                         sub: user.levelName,              icon: "star",       color: "#0085FF", tab: "achievements" as Tab },
-                  { label: "Badges",   value: achievements?.unlocked?.length || 0, sub: `of ${achievements?.all?.length || 0}`,  icon: "emoji_events", color: "#FFD700", tab: "achievements" as Tab },
-                  { label: "Enrolled", value: (enrollments || []).length,          sub: "workshops",                 icon: "school",     color: "#8b5cf6", tab: "learning" as Tab },
-                  { label: "Earned",   value: `₹${totalEarnings}`,                sub: `${(referredUsers || []).length} referrals`, icon: "group_add", color: "#4ade80", tab: "referrals" as Tab },
-                ].map((s, i) => (
-                  <button
-                    key={i}
-                    onClick={() => switchTab(s.tab)}
-                    className="relative p-5 text-left border-r last:border-r-0 border-white/[0.05] hover:bg-white/[0.025] transition-all group overflow-hidden"
-                  >
-                    {/* color accent top border */}
-                    <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: `${s.color}30` }} />
-                    <div className="absolute top-0 left-0 h-[2px] w-0 group-hover:w-full transition-all duration-500" style={{ background: s.color }} />
-                    <div className="flex items-start justify-between mb-3">
-                      <span className="text-[9px] text-white/20 font-black uppercase tracking-[0.15em]">{s.label}</span>
-                      <span className="material-symbols-outlined text-sm transition-transform group-hover:scale-110 duration-200" style={{ color: s.color, fontVariationSettings: "'FILL' 1" }}>{s.icon}</span>
-                    </div>
-                    <div className="font-headline font-black text-3xl leading-none mb-1">{s.value}</div>
-                    <p className="text-white/20 text-[10px]">{s.sub}</p>
-                  </button>
-                ))}
-              </div>
+              <div className="px-5 md:px-8 py-6 max-w-7xl mx-auto space-y-5">
 
-              {/* Main grid */}
-              <div className="px-6 md:px-8 py-6 max-w-7xl space-y-8">
+                {/* ── HERO GLASS CARD ── */}
+                <div className="relative overflow-hidden p-6 md:p-8" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.02) 100%)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: '20px', boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.07)' }}>
+                  {/* Glow blobs */}
+                  <div className="absolute -top-12 -right-12 w-56 h-56 bg-[#0085FF]/[0.12] blur-3xl pointer-events-none" />
+                  <div className="absolute -bottom-8 -left-8 w-40 h-40 bg-[#8b5cf6]/[0.08] blur-2xl pointer-events-none" />
 
-                {/* Followed domains */}
-                {(subscriptions || []).length > 0 && (
-                  <section>
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="font-headline font-bold text-sm flex items-center gap-2 text-white/70 uppercase tracking-wider">
-                        <span className="material-symbols-outlined text-[#0085FF] text-base" style={{ fontVariationSettings: "'FILL' 1" }}>interests</span>
-                        Your Domains
-                      </h2>
-                      <button onClick={() => switchTab("domains")} className="text-[#0085FF] text-[11px] font-bold hover:underline">Manage →</button>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {(subscriptions || []).slice(0, 3).map((sub: any) => {
-                        const cohort = sub.cohort
-                        const cohortFull = allCohorts.find((c: any) => c.id === cohort?.id)
-                        return (
-                          <Link
-                            key={sub.id}
-                            href={`/cohort/${cohort?.slug}`}
-                            className="group bg-[#0d0d0d] border border-white/[0.06] hover:border-white/10 p-4 transition-all relative overflow-hidden"
-                            style={{ borderLeft: `3px solid ${cohort?.accentHex || "#0085FF"}` }}
-                          >
-                            <div className="absolute bottom-0 left-0 h-px w-0 group-hover:w-full transition-all duration-500" style={{ background: `${cohort?.accentHex || "#0085FF"}40` }} />
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="text-lg">{cohort?.emoji}</span>
-                              <h3 className="font-headline font-bold text-sm group-hover:text-white transition-colors">{cohort?.name}</h3>
-                              <span className="ml-auto text-[8px] bg-green-500/10 text-green-400 border border-green-500/20 px-1.5 py-0.5 font-black">ON</span>
-                            </div>
-                            <p className="text-white/25 text-[10px]">{cohortFull?.bundles?.length || 0} workshops available</p>
-                          </Link>
-                        )
-                      })}
-                    </div>
-                  </section>
-                )}
-
-                {/* Active enrollments + quick actions */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-                  {/* Active workshops */}
-                  <section>
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="font-headline font-bold text-sm text-white/70 uppercase tracking-wider flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[#8b5cf6] text-base" style={{ fontVariationSettings: "'FILL' 1" }}>school</span>
-                        Active Workshops
-                      </h2>
-                      <button onClick={() => switchTab("learning")} className="text-[#0085FF] text-[11px] font-bold hover:underline">All →</button>
-                    </div>
-                    {(enrollments || []).length === 0 ? (
-                      <div className="bg-[#0d0d0d] border border-dashed border-white/[0.06] p-8 text-center">
-                        <span className="material-symbols-outlined text-3xl text-white/10 block mb-2">school</span>
-                        <p className="text-white/25 text-xs mb-3">No active workshops yet.</p>
-                        <Link href="/domains" className="text-[#0085FF] text-xs font-bold hover:underline">Browse Workshops →</Link>
+                  <div className="relative flex items-center justify-between gap-6">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                        <span className="text-[11px] text-white/40 font-semibold uppercase tracking-[0.2em]">Active · {new Date().toLocaleDateString("en-IN", { weekday: 'long', day: 'numeric', month: 'short' })}</span>
                       </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {(enrollments || []).slice(0, 3).map((en: any) => (
-                          <div key={en.id} className="bg-[#0d0d0d] border border-white/[0.06] hover:border-white/10 p-4 transition-all flex items-center gap-3 group">
-                            <div className="w-9 h-9 flex items-center justify-center text-lg bg-[#8b5cf6]/10 shrink-0">{en.bundle?.cohort?.emoji}</div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-bold text-sm truncate group-hover:text-white transition-colors">{en.bundle?.name}</p>
-                              <p className="text-white/25 text-[10px]">{en.bundle?.cohort?.name} · {en.bundle?.duration}</p>
-                            </div>
-                            <StatusBadge status={en.status} />
-                          </div>
-                        ))}
+                      <h1 className="font-headline font-black text-5xl md:text-7xl tracking-tight leading-none mb-3">
+                        {user.name.split(" ")[0]}<span className="text-[#0085FF]">.</span>
+                      </h1>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <span className="text-xs font-bold text-white/50">{user.levelName}</span>
+                        <span className="w-px h-3 bg-white/[0.12]" />
+                        <span className="text-xs text-white/30">{user.xp} XP · {user.nextLevelXp - user.xp} to next level</span>
                       </div>
-                    )}
-                  </section>
-
-                  {/* Quick actions */}
-                  <section>
-                    <h2 className="font-headline font-bold text-sm text-white/70 uppercase tracking-wider flex items-center gap-2 mb-4">
-                      <span className="material-symbols-outlined text-white/30 text-base">bolt</span>
-                      Quick Actions
-                    </h2>
-                    <div className="space-y-2">
-                      {[
-                        { href: "/domains", label: "Browse Workshops", sub: "Explore all domains", icon: "explore", color: "#0085FF", isLink: true },
-                        ...(isRealCode ? [{ onClick: copyLink, label: copied ? "Link copied! ✓" : "Share Referral Link", sub: "Earn ₹100–200 per referral", icon: "share", color: "#FFD700", isLink: false }] : []),
-                        { onClick: () => switchTab("resources"), label: "Free Resources", sub: "Cheatsheets, roadmaps, templates", icon: "library_books", color: "#8b5cf6", isLink: false },
-                        { onClick: () => switchTab("achievements"), label: "View Achievements", sub: `${achievements?.unlocked?.length || 0} of ${achievements?.all?.length || 0} unlocked`, icon: "emoji_events", color: "#FFD700", isLink: false },
-                      ].map((action: any, i) => {
-                        const inner = (
-                          <div className="flex items-center gap-3.5 p-4 bg-[#0d0d0d] border border-white/[0.06] hover:border-white/10 transition-all group w-full text-left">
-                            <div className="w-9 h-9 flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 duration-200" style={{ background: `${action.color}12` }}>
-                              <span className="material-symbols-outlined text-base" style={{ color: action.color }}>{action.icon}</span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-bold text-xs">{action.label}</p>
-                              <p className="text-white/25 text-[10px]">{action.sub}</p>
-                            </div>
-                            <span className="material-symbols-outlined text-white/15 text-sm group-hover:text-white/30 group-hover:translate-x-0.5 transition-all">arrow_forward</span>
+                      <div className="mt-4 flex items-center gap-3">
+                        <div className="relative h-1.5 flex-1 max-w-48 overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)', borderRadius: '4px' }}>
+                          <div className="h-full bg-[#0085FF] transition-all duration-1000 relative" style={{ width: `${xpProgress}%`, borderRadius: '4px' }}>
+                            <div className="absolute inset-0 animate-shimmer" />
                           </div>
-                        )
-                        return action.isLink
-                          ? <Link key={i} href={action.href}>{inner}</Link>
-                          : <button key={i} onClick={action.onClick} className="w-full">{inner}</button>
-                      })}
+                        </div>
+                        <span className="text-[10px] font-bold" style={{ color: '#0085FF' }}>LVL {user.level}</span>
+                      </div>
                     </div>
-                  </section>
+                    <XPRing progress={xpProgress} level={user.level} />
+                  </div>
                 </div>
 
-                {/* Leaderboard */}
-                <section>
-                  <h2 className="font-headline font-bold text-sm text-white/70 uppercase tracking-wider flex items-center gap-2 mb-4">
-                    <span className="material-symbols-outlined text-[#FFD700] text-base" style={{ fontVariationSettings: "'FILL' 1" }}>leaderboard</span>
-                    Top Referrers
-                  </h2>
-                  <div className="bg-[#0d0d0d] border border-white/[0.06] overflow-hidden">
-                    {leaderboard.length === 0 ? (
-                      <div className="p-8 text-center text-white/20 text-xs">No referrals yet — be the first!</div>
-                    ) : leaderboard.slice(0, 5).map((l: any, i: number) => {
-                      const medals = ["🥇", "🥈", "🥉"]
-                      const isMe = l.name?.includes(user.name.split(" ")[0])
-                      return (
-                        <div key={i} className={`flex items-center justify-between px-5 py-3.5 border-b border-white/[0.03] last:border-0 transition-colors ${isMe ? "bg-[#0085FF]/[0.04]" : "hover:bg-white/[0.015]"}`}>
-                          <div className="flex items-center gap-3">
-                            <span className="w-6 text-center text-sm">{medals[i] || <span className="text-white/20 font-mono text-xs">{i + 1}</span>}</span>
-                            <span className={`text-sm font-medium ${isMe ? "text-[#0085FF]" : ""}`}>{l.name}</span>
-                            {isMe && <span className="text-[8px] bg-[#0085FF]/10 text-[#0085FF] px-1.5 py-0.5 font-black uppercase">You</span>}
-                          </div>
-                          <span className="text-white/30 text-xs font-mono">{l.referrals} refs</span>
+                {/* ── STATS ROW ── */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { label: "Level",    value: user.level,                          sub: user.levelName,              icon: "star",         color: "#0085FF", tab: "achievements" as Tab },
+                    { label: "Badges",   value: achievements?.unlocked?.length || 0,  sub: `of ${achievements?.all?.length || 0} total`, icon: "emoji_events", color: "#FFD700", tab: "achievements" as Tab },
+                    { label: "Enrolled", value: (enrollments || []).length,           sub: "workshops",                 icon: "school",       color: "#8b5cf6", tab: "learning" as Tab },
+                    { label: "Earned",   value: `₹${totalEarnings}`,                 sub: `${(referredUsers || []).length} referrals`, icon: "group_add",  color: "#4ade80", tab: "referrals" as Tab },
+                  ].map((s, i) => (
+                    <button
+                      key={i}
+                      onClick={() => switchTab(s.tab)}
+                      className="relative p-5 text-left transition-all duration-200 group overflow-hidden"
+                      style={{ background: 'rgba(255,255,255,0.035)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '14px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.12)' }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.035)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.07)' }}
+                    >
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" style={{ background: `radial-gradient(circle at top right, ${s.color}18 0%, transparent 60%)` }} />
+                      <div className="flex items-start justify-between mb-3">
+                        <span className="text-[9px] text-white/25 font-black uppercase tracking-[0.15em]">{s.label}</span>
+                        <div className="w-7 h-7 flex items-center justify-center transition-transform group-hover:scale-110 duration-200" style={{ background: `${s.color}18`, borderRadius: '8px' }}>
+                          <span className="material-symbols-outlined text-sm" style={{ color: s.color, fontVariationSettings: "'FILL' 1" }}>{s.icon}</span>
                         </div>
-                      )
-                    })}
+                      </div>
+                      <div className="font-headline font-black text-3xl leading-none mb-1">{s.value}</div>
+                      <p className="text-white/25 text-[10px]">{s.sub}</p>
+                    </button>
+                  ))}
+                </div>
+
+                {/* ── BENTO MAIN GRID ── */}
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+
+                  {/* Active workshops — spans 3 cols */}
+                  <div className="lg:col-span-3 space-y-4">
+
+                    {/* Enrollments card */}
+                    <div className="overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+                      <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.05]">
+                        <h2 className="font-headline font-bold text-sm text-white/60 uppercase tracking-wider flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[#8b5cf6] text-base" style={{ fontVariationSettings: "'FILL' 1" }}>school</span>
+                          Enrolled
+                        </h2>
+                        <button onClick={() => switchTab("learning")} className="text-[#0085FF] text-[11px] font-bold hover:text-[#40a9ff] transition-colors">All →</button>
+                      </div>
+                      {(enrollments || []).length === 0 ? (
+                        <div className="p-10 text-center">
+                          <span className="material-symbols-outlined text-3xl text-white/10 block mb-2">school</span>
+                          <p className="text-white/25 text-xs mb-3">No active workshops yet.</p>
+                          <Link href="/domains" className="text-[#0085FF] text-xs font-bold hover:underline">Browse →</Link>
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-white/[0.04]">
+                          {(enrollments || []).slice(0, 4).map((en: any) => (
+                            <div key={en.id} className="flex items-center gap-4 px-5 py-4 hover:bg-white/[0.025] transition-colors group cursor-default">
+                              <div className="w-10 h-10 flex items-center justify-center text-xl shrink-0" style={{ background: 'rgba(139,92,246,0.1)', borderRadius: '10px' }}>{en.bundle?.cohort?.emoji || '🎓'}</div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-sm truncate">{en.bundle?.name}</p>
+                                <p className="text-white/30 text-[11px] truncate">{en.bundle?.cohort?.name || en.bundle?.cohortSlug} · {en.bundle?.duration}</p>
+                              </div>
+                              <StatusBadge status={en.status} />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Followed domains — only if subscribed */}
+                    {(subscriptions || []).length > 0 && (
+                      <div className="overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.05]">
+                          <h2 className="font-headline font-bold text-sm text-white/60 uppercase tracking-wider flex items-center gap-2">
+                            <span className="material-symbols-outlined text-[#0085FF] text-base" style={{ fontVariationSettings: "'FILL' 1" }}>interests</span>
+                            Following
+                          </h2>
+                          <button onClick={() => switchTab("domains")} className="text-[#0085FF] text-[11px] font-bold hover:text-[#40a9ff] transition-colors">Manage →</button>
+                        </div>
+                        <div className="p-4 grid grid-cols-2 gap-2">
+                          {(subscriptions || []).slice(0, 4).map((sub: any) => {
+                            const cohort = sub.cohort
+                            const cohortFull = allCohorts.find((c: any) => c.id === cohort?.id)
+                            return (
+                              <Link key={sub.id} href={`/cohort/${cohort?.slug}`}
+                                className="flex items-center gap-2.5 p-3 hover:bg-white/[0.04] transition-colors group"
+                                style={{ border: `1px solid ${cohort?.accentHex || "#0085FF"}22`, borderRadius: '10px', borderLeft: `3px solid ${cohort?.accentHex || "#0085FF"}` }}
+                              >
+                                <span className="text-base">{cohort?.emoji}</span>
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold truncate">{cohort?.name}</p>
+                                  <p className="text-white/25 text-[9px]">{cohortFull?.bundles?.length || 0} workshops</p>
+                                </div>
+                              </Link>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </section>
+
+                  {/* Quick actions + leaderboard — spans 2 cols */}
+                  <div className="lg:col-span-2 space-y-4">
+
+                    {/* Quick actions glass card */}
+                    <div className="overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+                      <div className="px-5 py-4 border-b border-white/[0.05]">
+                        <h2 className="font-headline font-bold text-sm text-white/60 uppercase tracking-wider flex items-center gap-2">
+                          <span className="material-symbols-outlined text-white/30 text-base" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+                          Quick Actions
+                        </h2>
+                      </div>
+                      <div className="p-3 space-y-1.5">
+                        {[
+                          { href: "/domains", label: "Browse Workshops", sub: "Explore all domains", icon: "explore", color: "#0085FF", isLink: true },
+                          ...(isRealCode ? [{ onClick: copyLink, label: copied ? "Copied! ✓" : "Share Referral Link", sub: "Earn ₹100–200 per referral", icon: "share", color: "#FFD700", isLink: false }] : []),
+                          { onClick: () => switchTab("resources"), label: "Free Resources", sub: "Cheatsheets, roadmaps, templates", icon: "library_books", color: "#8b5cf6", isLink: false },
+                          { onClick: () => switchTab("achievements"), label: "Achievements", sub: `${achievements?.unlocked?.length || 0} of ${achievements?.all?.length || 0} unlocked`, icon: "emoji_events", color: "#FFD700", isLink: false },
+                        ].map((action: any, i) => {
+                          const inner = (
+                            <div className="flex items-center gap-3 p-3 hover:bg-white/[0.04] transition-colors group w-full text-left" style={{ borderRadius: '10px' }}>
+                              <div className="w-9 h-9 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 duration-200" style={{ background: `${action.color}15`, borderRadius: '9px' }}>
+                                <span className="material-symbols-outlined text-[18px]" style={{ color: action.color }}>{action.icon}</span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-[13px] leading-tight">{action.label}</p>
+                                <p className="text-white/30 text-[10px]">{action.sub}</p>
+                              </div>
+                              <span className="material-symbols-outlined text-white/15 text-sm group-hover:text-white/35 group-hover:translate-x-0.5 transition-all">arrow_forward</span>
+                            </div>
+                          )
+                          return action.isLink
+                            ? <Link key={i} href={action.href}>{inner}</Link>
+                            : <button key={i} onClick={action.onClick} className="w-full">{inner}</button>
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Leaderboard glass card */}
+                    <div className="overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,215,0,0.08)', borderRadius: '16px', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+                      <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.05]">
+                        <h2 className="font-headline font-bold text-sm text-white/60 uppercase tracking-wider flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[#FFD700] text-base" style={{ fontVariationSettings: "'FILL' 1" }}>leaderboard</span>
+                          Top Referrers
+                        </h2>
+                      </div>
+                      {leaderboard.length === 0 ? (
+                        <div className="p-8 text-center text-white/20 text-xs">No referrals yet — be the first!</div>
+                      ) : (
+                        <div className="divide-y divide-white/[0.04]">
+                          {leaderboard.slice(0, 5).map((l: any, i: number) => {
+                            const medals = ["🥇", "🥈", "🥉"]
+                            const isMe = l.name?.includes(user.name.split(" ")[0])
+                            return (
+                              <div key={i} className={`flex items-center gap-3 px-5 py-3 transition-colors ${isMe ? "bg-[#0085FF]/[0.06]" : "hover:bg-white/[0.02]"}`}>
+                                <span className="w-6 text-sm text-center shrink-0">{medals[i] || <span className="text-white/20 font-mono text-xs">{i + 1}</span>}</span>
+                                <span className={`text-sm font-medium flex-1 truncate ${isMe ? "text-[#0085FF]" : ""}`}>{l.name}</span>
+                                {isMe && <span className="text-[8px] text-[#0085FF] font-black uppercase tracking-wider shrink-0">You</span>}
+                                <span className="text-white/25 text-[11px] font-mono shrink-0">{l.referrals}</span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
 
               </div>
             </div>
@@ -771,7 +824,7 @@ function DashboardContent() {
 
           {/* ─────────────────────────── MY LEARNING TAB ─── */}
           {activeTab === "learning" && (
-            <div className="max-w-4xl px-6 md:px-8 py-8 space-y-6 animate-in fade-in duration-300">
+            <div className="max-w-4xl mx-auto px-6 md:px-8 py-8 space-y-6 animate-in fade-in duration-300">
               <div>
                 <h1 className="font-headline font-black text-4xl tracking-tight">My Learning</h1>
                 <p className="text-white/30 text-sm mt-1">Click any workshop to see peers & join discussions.</p>
@@ -915,10 +968,18 @@ function DashboardContent() {
 
           {/* ──────────────────────── CONNECTIONS TAB ─── */}
           {activeTab === "connections" && (
-            <div className="max-w-4xl px-6 md:px-8 py-8 space-y-8 animate-in fade-in duration-300">
-              <div>
-                <h1 className="font-headline font-black text-4xl tracking-tight">Connections</h1>
-                <p className="text-white/30 text-sm mt-1">People you've connected with through workshops.</p>
+            <div className="max-w-4xl mx-auto px-6 md:px-8 py-8 space-y-8 animate-in fade-in duration-300">
+              <div className="flex items-end justify-between">
+                <div>
+                  <h1 className="font-headline font-black text-4xl tracking-tight">Connections</h1>
+                  <p className="text-white/30 text-sm mt-1">Your builder network.</p>
+                </div>
+                {(connections.accepted?.length || 0) > 0 && (
+                  <div className="text-right">
+                    <div className="font-headline font-black text-3xl text-[#0085FF]">{connections.accepted.length}</div>
+                    <p className="text-white/25 text-[9px] uppercase tracking-widest">Connected</p>
+                  </div>
+                )}
               </div>
 
               {connectionsLoading ? (
@@ -927,69 +988,121 @@ function DashboardContent() {
                 </div>
               ) : (
                 <>
+                  {/* Pending incoming */}
                   {connections.pendingIncoming?.length > 0 && (
                     <section>
-                      <h2 className="font-headline font-bold text-xs text-white/40 uppercase tracking-widest mb-3 flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 bg-yellow-500 animate-pulse" />
-                        Pending Requests ({connections.pendingIncoming.length})
+                      <h2 className="font-headline font-bold text-xs text-yellow-400/60 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse" />
+                        {connections.pendingIncoming.length} request{connections.pendingIncoming.length !== 1 ? 's' : ''} waiting
                       </h2>
                       <div className="space-y-2">
                         {connections.pendingIncoming.map((conn: any) => (
-                          <div key={conn.id} className="bg-[#0d0d0d] border border-yellow-500/[0.1] p-4 flex items-center gap-4">
+                          <div key={conn.id} className="bg-[#0d0d0d] border border-yellow-500/[0.12] p-4 flex items-center gap-4 group hover:border-yellow-500/25 transition-all">
                             <Avatar name={conn.peer?.name || "?"} size="md" color="#ca8a04" />
-                            <div className="flex-1">
-                              <p className="font-bold text-sm">{conn.peer?.name}</p>
-                              <p className="text-white/25 text-[10px]">{conn.peer?.college || "Student"} · Lv.{conn.peer?.level || 1}</p>
-                            </div>
-                            <div className="flex gap-2">
-                              <button onClick={() => handleConnectionAction(conn.id, "ACCEPTED")} disabled={connectionActionLoading === conn.id} className="bg-green-500 text-white text-xs font-bold px-3 py-1.5 hover:bg-green-600 transition-colors disabled:opacity-50">Accept</button>
-                              <button onClick={() => handleConnectionAction(conn.id, "DECLINED")} disabled={connectionActionLoading === conn.id} className="bg-white/[0.04] text-white/40 text-xs font-bold px-3 py-1.5 hover:bg-red-500/10 hover:text-red-400 transition-all disabled:opacity-50">Decline</button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </section>
-                  )}
-
-                  {connections.pendingOutgoing?.length > 0 && (
-                    <section>
-                      <h2 className="font-headline font-bold text-xs text-white/30 uppercase tracking-widest mb-3">Sent ({connections.pendingOutgoing.length})</h2>
-                      <div className="space-y-2">
-                        {connections.pendingOutgoing.map((conn: any) => (
-                          <div key={conn.id} className="bg-[#0d0d0d] border border-white/[0.05] p-4 flex items-center gap-4 opacity-50">
-                            <Avatar name={conn.peer?.name || "?"} size="md" color="#333" />
-                            <div className="flex-1">
-                              <p className="font-bold text-sm">{conn.peer?.name}</p>
-                              <p className="text-white/25 text-[10px]">{conn.peer?.college || "Student"}</p>
-                            </div>
-                            <span className="text-[9px] text-yellow-500/60 font-black uppercase tracking-wider">Pending</span>
-                          </div>
-                        ))}
-                      </div>
-                    </section>
-                  )}
-
-                  <section>
-                    <h2 className="font-headline font-bold text-xs text-white/40 uppercase tracking-widest mb-3">Your Network ({connections.accepted?.length || 0})</h2>
-                    {(!connections.accepted || connections.accepted.length === 0) ? (
-                      <div className="text-center py-20 bg-[#0d0d0d] border border-dashed border-white/[0.06]">
-                        <span className="material-symbols-outlined text-5xl text-white/10 mb-3 block">people</span>
-                        <h3 className="font-headline font-bold text-xl text-white/40 mb-2">No connections yet</h3>
-                        <p className="text-white/20 text-sm mb-5">Enroll in a workshop and connect with peers.</p>
-                        <button onClick={() => switchTab("learning")} className="bg-[#0085FF] text-white px-8 py-3 font-bold text-sm hover:bg-[#0070DD] transition-colors">Go to My Learning →</button>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        {connections.accepted.map((conn: any) => (
-                          <div key={conn.id} className="bg-[#0d0d0d] border border-white/[0.06] p-4 flex items-center gap-3 hover:border-white/10 transition-all">
-                            <Avatar name={conn.peer?.name || "?"} size="md" color="#0085FF" />
                             <div className="flex-1 min-w-0">
                               <p className="font-bold text-sm truncate">{conn.peer?.name}</p>
-                              <p className="text-white/25 text-[10px]">{conn.peer?.college || "Student"} · Lv.{conn.peer?.level || 1}</p>
+                              <p className="text-white/25 text-[10px]">{conn.peer?.college || "Student"} · <span className="text-[#0085FF]/60">Lv.{conn.peer?.level || 1}</span></p>
                             </div>
-                            {conn.peer?.githubUrl && (
-                              <a href={conn.peer.githubUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] bg-white/[0.04] text-white/35 px-2.5 py-1 hover:text-white hover:bg-white/[0.08] transition-all font-mono">GH →</a>
-                            )}
+                            <div className="flex gap-2">
+                              <button
+                                onClick={async () => {
+                                  setConnectionActionLoading(conn.id)
+                                  await fetch("/api/connections", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ connectionId: conn.id, action: "ACCEPTED" }) })
+                                  setConnections((prev: any) => ({
+                                    ...prev,
+                                    pendingIncoming: prev.pendingIncoming.filter((c: any) => c.id !== conn.id),
+                                    accepted: [...(prev.accepted || []), { ...conn, peer: conn.peer }],
+                                  }))
+                                  setConnectionActionLoading(null)
+                                }}
+                                disabled={connectionActionLoading === conn.id}
+                                className="bg-[#0085FF] text-white text-[11px] font-bold px-4 py-1.5 hover:bg-[#0070DD] transition-colors disabled:opacity-50"
+                              >
+                                {connectionActionLoading === conn.id ? "..." : "Accept"}
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  setConnectionActionLoading(conn.id)
+                                  await fetch("/api/connections", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ connectionId: conn.id, action: "DECLINED" }) })
+                                  setConnections((prev: any) => ({
+                                    ...prev,
+                                    pendingIncoming: prev.pendingIncoming.filter((c: any) => c.id !== conn.id),
+                                  }))
+                                  setConnectionActionLoading(null)
+                                }}
+                                disabled={connectionActionLoading === conn.id}
+                                className="bg-white/[0.04] text-white/30 text-[11px] font-bold px-3 py-1.5 hover:bg-red-500/10 hover:text-red-400 transition-all disabled:opacity-50"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  {/* Pending outgoing */}
+                  {connections.pendingOutgoing?.length > 0 && (
+                    <section>
+                      <h2 className="font-headline font-bold text-xs text-white/25 uppercase tracking-widest mb-3">Sent ({connections.pendingOutgoing.length})</h2>
+                      <div className="flex flex-wrap gap-2">
+                        {connections.pendingOutgoing.map((conn: any) => (
+                          <div key={conn.id} className="flex items-center gap-2 bg-[#0d0d0d] border border-white/[0.05] px-3 py-2 opacity-60">
+                            <Avatar name={conn.peer?.name || "?"} size="sm" color="#555" />
+                            <span className="text-xs font-bold">{conn.peer?.name?.split(" ")[0]}</span>
+                            <span className="text-[9px] text-yellow-500/50 font-black uppercase ml-1">·  pending</span>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  {/* Your network */}
+                  <section>
+                    <h2 className="font-headline font-bold text-xs text-white/40 uppercase tracking-widest mb-4">
+                      Your Network {(connections.accepted?.length || 0) > 0 && `· ${connections.accepted.length}`}
+                    </h2>
+                    {(!connections.accepted || connections.accepted.length === 0) ? (
+                      <div className="text-center py-16 bg-[#0d0d0d] border border-dashed border-white/[0.06] space-y-4">
+                        <span className="material-symbols-outlined text-5xl text-white/10 block">group_add</span>
+                        <div>
+                          <h3 className="font-headline font-bold text-lg text-white/40">No connections yet</h3>
+                          <p className="text-white/20 text-sm mt-1">Go to your Launchpad tab to connect with cohort mates.</p>
+                        </div>
+                        {hasLaunchpadAccess && (
+                          <button onClick={() => switchTab("launchpad")} className="bg-[#0085FF] text-white px-8 py-2.5 font-bold text-sm hover:bg-[#0070DD] transition-colors">
+                            Open Launchpad →
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {connections.accepted.map((conn: any) => (
+                          <div key={conn.id} className="bg-[#0d0d0d] border border-white/[0.06] p-4 hover:border-[#0085FF]/20 transition-all group">
+                            <div className="flex items-center gap-3 mb-3">
+                              <Avatar name={conn.peer?.name || "?"} size="md" color="#0085FF" />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-sm truncate">{conn.peer?.name}</p>
+                                <p className="text-white/25 text-[10px] truncate">{conn.peer?.college || "Student"}</p>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <div className="text-[10px] font-black text-[#0085FF]">Lv.{conn.peer?.level || 1}</div>
+                                <div className="text-[9px] text-white/20">{conn.peer?.xp || 0} XP</div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 pt-2 border-t border-white/[0.04]">
+                              {conn.peer?.githubUrl && (
+                                <a href={conn.peer.githubUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] bg-white/[0.04] text-white/35 px-2.5 py-1 hover:text-white hover:bg-white/[0.08] transition-all font-mono">
+                                  <span className="material-symbols-outlined text-xs">code</span>GitHub
+                                </a>
+                              )}
+                              {conn.peer?.linkedinUrl && (
+                                <a href={conn.peer.linkedinUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] bg-white/[0.04] text-white/35 px-2.5 py-1 hover:text-[#0085FF] hover:bg-[#0085FF]/10 transition-all">
+                                  <span className="material-symbols-outlined text-xs">work</span>LinkedIn
+                                </a>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -1002,7 +1115,7 @@ function DashboardContent() {
 
           {/* ──────────────────────────── ORDERS TAB ─── */}
           {activeTab === "orders" && (
-            <div className="max-w-4xl px-6 md:px-8 py-8 space-y-6 animate-in fade-in duration-300">
+            <div className="max-w-4xl mx-auto px-6 md:px-8 py-8 space-y-6 animate-in fade-in duration-300">
               <h1 className="font-headline font-black text-4xl tracking-tight">Orders</h1>
               {(orders || []).length === 0 ? (
                 <div className="text-center py-24 bg-[#0d0d0d] border border-dashed border-white/[0.06]">
@@ -1038,30 +1151,64 @@ function DashboardContent() {
 
           {/* ───────────────────────── REFERRALS TAB ─── */}
           {activeTab === "referrals" && (
-            <div className="max-w-4xl px-6 md:px-8 py-8 space-y-8 animate-in fade-in duration-300">
-              <h1 className="font-headline font-black text-4xl tracking-tight">Referrals</h1>
+            <div className="max-w-4xl mx-auto px-6 md:px-8 py-8 space-y-8 animate-in fade-in duration-300">
+              <div className="flex items-center justify-between">
+                <h1 className="font-headline font-black text-4xl tracking-tight">Referrals</h1>
+                {isRealCode && <span className="text-[10px] font-black uppercase tracking-widest text-[#FFD700]/60 border border-[#FFD700]/20 px-3 py-1">{user.referralCode}</span>}
+              </div>
 
               {isRealCode ? (
                 <div className="relative border border-[#FFD700]/15 overflow-hidden bg-[#0d0d0d]">
                   <div className="absolute top-0 left-0 right-0 h-0.5 bg-[#FFD700]/40" />
-                  <div className="absolute -top-16 -right-16 w-48 h-48 bg-[#FFD700]/[0.04] blur-3xl pointer-events-none" />
+                  <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#FFD700]/[0.03] blur-3xl pointer-events-none" />
                   <div className="relative p-6 space-y-5">
                     <div className="flex items-center gap-2">
                       <span className="material-symbols-outlined text-[#FFD700] text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>stars</span>
                       <span className="text-[10px] font-black text-[#FFD700]/70 uppercase tracking-[0.15em]">Your Referral Link</span>
                     </div>
+
+                    {/* Link copy row */}
                     <div className="flex flex-col sm:flex-row gap-2">
-                      <div className="flex-1 bg-black/50 border border-white/[0.06] px-4 py-2.5 font-mono text-[#0085FF] text-sm truncate">letsrevamp.in?ref={user.referralCode}</div>
-                      <button onClick={copyLink} className="bg-[#FFD700] text-black px-6 py-2.5 font-black text-sm hover:bg-[#e6c300] transition-colors shrink-0">{copied ? "Copied! ✓" : "Copy Link"}</button>
+                      <div className="flex-1 bg-black/50 border border-white/[0.06] px-4 py-2.5 font-mono text-[#0085FF] text-sm truncate select-all cursor-text">
+                        https://letsrevamp.in?ref={user.referralCode}
+                      </div>
+                      <button onClick={copyLink} className="bg-[#FFD700] text-black px-6 py-2.5 font-black text-sm hover:bg-[#e6c300] transition-colors shrink-0">
+                        {copied ? "Copied! ✓" : "Copy Link"}
+                      </button>
                     </div>
+
+                    {/* Share buttons */}
+                    <div className="flex gap-2 flex-wrap">
+                      <a
+                        href={`https://wa.me/?text=${encodeURIComponent(`Hey! Join me on Revamp — the no-BS coding program for real builders. Use my referral link and get a discount: https://letsrevamp.in?ref=${user.referralCode}`)}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 bg-[#25D366]/10 border border-[#25D366]/25 text-[#25D366] px-4 py-2 text-[11px] font-bold hover:bg-[#25D366]/15 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-base">chat</span>
+                        Share on WhatsApp
+                      </a>
+                      <button
+                        onClick={() => {
+                          if (navigator.share) {
+                            navigator.share({ title: 'Join Revamp', url: `https://letsrevamp.in?ref=${user.referralCode}` }).catch(() => {})
+                          } else copyLink()
+                        }}
+                        className="flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] text-white/50 px-4 py-2 text-[11px] font-bold hover:bg-white/[0.07] transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-base">ios_share</span>
+                        Share
+                      </button>
+                    </div>
+
+                    {/* Stats */}
                     <div className="grid grid-cols-3 gap-3">
                       <div className="bg-black/30 border border-white/[0.05] p-5 text-center">
                         <div className="font-headline font-black text-2xl text-[#FFD700]">₹{totalEarnings}</div>
                         <p className="text-white/30 text-[10px] mt-1 uppercase tracking-wider">Total Earned</p>
                       </div>
                       <div className="bg-black/30 border border-white/[0.05] p-5 text-center">
-                        <div className="font-headline font-black text-2xl">₹{totalRedeemed || 0}</div>
-                        <p className="text-white/30 text-[10px] mt-1 uppercase tracking-wider">Redeemed</p>
+                        <div className="font-headline font-black text-2xl">{(referredUsers || []).length}</div>
+                        <p className="text-white/30 text-[10px] mt-1 uppercase tracking-wider">Referrals</p>
                       </div>
                       <div className="bg-black/30 border border-white/[0.05] p-5 text-center border-l border-l-[#FFD700]/20">
                         <div className="font-headline font-black text-2xl text-green-400">₹{availableBalance || 0}</div>
@@ -1069,13 +1216,31 @@ function DashboardContent() {
                       </div>
                     </div>
 
+                    {/* How it works */}
+                    <div className="bg-black/20 border border-white/[0.04] p-4 space-y-2">
+                      <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-3">How it works</p>
+                      {[
+                        { n: "01", text: "Share your link with friends" },
+                        { n: "02", text: "They sign up & enrol in any program" },
+                        { n: "03", text: "You earn ₹100–₹200 per paid enrolment" },
+                        { n: "04", text: "Withdraw to UPI anytime (min ₹100)" },
+                      ].map(s => (
+                        <div key={s.n} className="flex items-center gap-3">
+                          <span className="text-[9px] font-black text-[#FFD700]/40 font-mono w-5">{s.n}</span>
+                          <span className="text-[11px] text-white/40">{s.text}</span>
+                        </div>
+                      ))}
+                    </div>
+
                     {availableBalance > 0 && (
-                      <form onSubmit={handleWithdraw} className="bg-white/[0.02] border border-[#FFD700]/20 p-5 mt-4 space-y-4">
-                        <h3 className="font-bold text-sm text-[#FFD700]">Withdraw Earnings</h3>
-                        <p className="text-white/40 text-[11px]">Minimum withdrawal is ₹100. Payouts are manually processed to your UPI within 48 hours.</p>
+                      <form onSubmit={handleWithdraw} className="bg-white/[0.02] border border-[#FFD700]/20 p-5 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-bold text-sm text-[#FFD700]">Withdraw Earnings</h3>
+                          <span className="text-[10px] text-white/30">Min ₹100 · Paid within 48h</span>
+                        </div>
                         <div className="flex gap-2">
                           <input required type="number" min="100" max={availableBalance} placeholder="Amount (₹)" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} className="w-1/3 bg-black/50 border border-white/[0.06] px-3 py-2 text-sm text-white placeholder:text-white/20 outline-none focus:border-[#FFD700]/50" />
-                          <input required type="text" placeholder="Your UPI ID (e.g. name@okaxis)" value={withdrawUpi} onChange={(e) => setWithdrawUpi(e.target.value)} className="flex-1 bg-black/50 border border-white/[0.06] px-3 py-2 text-sm text-white placeholder:text-white/20 outline-none focus:border-[#FFD700]/50" />
+                          <input required type="text" placeholder="UPI ID (e.g. name@okaxis)" value={withdrawUpi} onChange={(e) => setWithdrawUpi(e.target.value)} className="flex-1 bg-black/50 border border-white/[0.06] px-3 py-2 text-sm text-white placeholder:text-white/20 outline-none focus:border-[#FFD700]/50" />
                           <button type="submit" disabled={withdrawSubmitting} className="bg-[#FFD700] text-black px-6 font-bold text-sm hover:bg-[#e6c300] transition-colors disabled:opacity-50 shrink-0">
                             {withdrawSubmitting ? "..." : "Request"}
                           </button>
@@ -1088,21 +1253,27 @@ function DashboardContent() {
                   </div>
                 </div>
               ) : (
-                <div className="bg-[#0d0d0d] border border-dashed border-white/[0.06] p-8 text-center">
-                  <span className="material-symbols-outlined text-4xl text-white/10 mb-3 block">lock</span>
-                  <p className="text-white/30 text-sm">Your referral code will appear once your payment is confirmed.</p>
+                <div className="bg-[#0d0d0d] border border-dashed border-white/[0.06] p-10 text-center space-y-3">
+                  <span className="material-symbols-outlined text-4xl text-white/10 block">lock</span>
+                  <p className="font-bold text-white/30">Referral link locked</p>
+                  <p className="text-white/20 text-sm">Your referral code activates once your enrolment payment is confirmed.</p>
                 </div>
               )}
 
               {(referredUsers || []).length > 0 && (
                 <section>
-                  <h2 className="font-headline font-bold text-xs text-white/40 uppercase tracking-widest mb-3">Referred Users</h2>
+                  <h2 className="font-headline font-bold text-xs text-white/40 uppercase tracking-widest mb-3">People You Referred ({(referredUsers || []).length})</h2>
                   <div className="space-y-2">
                     {(referredUsers || []).map((u: any) => (
                       <div key={u.id} className="flex justify-between items-center bg-[#0d0d0d] border border-white/[0.06] p-4 hover:border-white/10 transition-all">
-                        <div>
-                          <p className="font-bold text-sm">{u.name || "Anonymous"}</p>
-                          <p className="text-white/25 text-xs">{u.email}</p>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-[#FFD700]/10 flex items-center justify-center text-[10px] font-black text-[#FFD700]">
+                            {(u.name || "?").split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2)}
+                          </div>
+                          <div>
+                            <p className="font-bold text-sm">{u.name || "Anonymous"}</p>
+                            <p className="text-white/25 text-xs">{u.email}</p>
+                          </div>
                         </div>
                         <p className="text-white/20 text-xs font-mono">{new Date(u.createdAt).toLocaleDateString("en-IN")}</p>
                       </div>
@@ -1113,19 +1284,22 @@ function DashboardContent() {
 
               {(redemptions || []).length > 0 && (
                 <section>
-                  <h2 className="font-headline font-bold text-xs text-white/40 uppercase tracking-widest mb-3">Redemption History</h2>
+                  <h2 className="font-headline font-bold text-xs text-white/40 uppercase tracking-widest mb-3">Withdrawal History</h2>
                   <div className="space-y-2">
                     {(redemptions || []).map((r: any) => (
                       <div key={r.id} className="flex justify-between items-center bg-[#0d0d0d] border border-white/[0.06] p-4">
                         <div>
                           <p className="font-bold text-sm">₹{r.amount}</p>
-                          <p className="text-white/25 text-[10px] uppercase truncate max-w-[150px]">{r.upiId}</p>
+                          <p className="text-white/25 text-[10px] font-mono uppercase truncate max-w-[180px]">{r.upiId}</p>
                         </div>
-                        <div className="text-right flex flex-col justify-end items-end">
-                          <span className={`text-[9px] font-black px-2 py-0.5 border uppercase ${r.status === 'PAID' ? 'bg-green-500/10 text-green-400 border-green-500/20' : r.status === 'REJECTED' ? 'bg-red-500/10 text-red-500 border-red-500/20' : r.status === 'INITIATED' ? 'bg-[#FFD700]/10 text-[#FFD700] border-[#FFD700]/20' : 'bg-[#0085FF]/10 text-[#0085FF] border-[#0085FF]/20'}`}>
-                            {r.status}
-                          </span>
-                          <p className="text-white/20 text-[9px] font-mono mt-1">{new Date(r.createdAt).toLocaleDateString("en-IN")}</p>
+                        <div className="text-right flex flex-col items-end gap-1">
+                          <span className={`text-[9px] font-black px-2 py-0.5 border uppercase tracking-wider ${
+                            r.status === 'PAID' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                            r.status === 'REJECTED' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                            r.status === 'INITIATED' ? 'bg-[#FFD700]/10 text-[#FFD700] border-[#FFD700]/20' :
+                            'bg-[#0085FF]/10 text-[#0085FF] border-[#0085FF]/20'
+                          }`}>{r.status}</span>
+                          <p className="text-white/20 text-[9px] font-mono">{new Date(r.createdAt).toLocaleDateString("en-IN")}</p>
                         </div>
                       </div>
                     ))}
@@ -1137,7 +1311,7 @@ function DashboardContent() {
 
           {/* ─────────────────────────── DOMAINS TAB ─── */}
           {activeTab === "domains" && (
-            <div className="max-w-5xl px-6 md:px-8 py-8 space-y-6 animate-in fade-in duration-300">
+            <div className="max-w-5xl mx-auto px-6 md:px-8 py-8 space-y-6 animate-in fade-in duration-300">
               <div>
                 <h1 className="font-headline font-black text-4xl tracking-tight">Domains</h1>
                 <p className="text-white/30 text-sm mt-1">Follow a domain to get notified when new workshops drop.</p>
@@ -1186,7 +1360,7 @@ function DashboardContent() {
 
           {/* ──────────────────── ACHIEVEMENTS TAB ─── */}
           {activeTab === "achievements" && (
-            <div className="max-w-4xl px-6 md:px-8 py-8 space-y-6 animate-in fade-in duration-300">
+            <div className="max-w-4xl mx-auto px-6 md:px-8 py-8 space-y-6 animate-in fade-in duration-300">
               <div>
                 <h1 className="font-headline font-black text-4xl tracking-tight">Achievements</h1>
                 <p className="text-white/30 text-sm mt-1">Earn badges and XP by engaging with the platform.</p>
@@ -1244,7 +1418,7 @@ function DashboardContent() {
 
           {/* ──────────────────────── RESOURCES TAB ─── */}
           {activeTab === "resources" && (
-            <div className="max-w-5xl px-6 md:px-8 py-8 space-y-6 animate-in fade-in duration-300">
+            <div className="max-w-5xl mx-auto px-6 md:px-8 py-8 space-y-6 animate-in fade-in duration-300">
               <div>
                 <h1 className="font-headline font-black text-4xl tracking-tight">Resources</h1>
                 <p className="text-white/30 text-sm mt-1">Free cheatsheets, roadmaps, and templates to level up.</p>
@@ -1308,7 +1482,7 @@ function DashboardContent() {
 
           {/* ──────────────────────── SETTINGS TAB ─── */}
           {activeTab === "settings" && (
-            <div className="max-w-xl px-6 md:px-8 py-8 space-y-5 animate-in fade-in duration-300">
+            <div className="max-w-xl mx-auto px-6 md:px-8 py-8 space-y-5 animate-in fade-in duration-300">
               <h1 className="font-headline font-black text-4xl tracking-tight">Settings</h1>
 
               {/* Profile card */}
@@ -1438,7 +1612,7 @@ function DashboardContent() {
 
           {/* ──────────────────────── LAUNCHPAD TAB ─── */}
           {activeTab === "launchpad" && (
-            <div className="animate-in fade-in duration-300 px-6 md:px-8 py-8 max-w-5xl space-y-8">
+            <div className="animate-in fade-in duration-300 px-6 md:px-8 py-8 max-w-5xl mx-auto space-y-8">
 
               {launchpadLoading && (
                 <div className="flex items-center gap-3 py-16 text-white/20">
@@ -2123,18 +2297,34 @@ function DashboardContent() {
                           <span className="material-symbols-outlined text-sm text-white/30">group</span>
                           Your Cohort — {peers.length + 1} students
                         </h3>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                          {peers.map((p: any) => (
-                            <div key={p.id} className="bg-[#0d0d0d] border border-white/[0.05] p-3 flex items-center gap-2">
-                              <div className="w-7 h-7 bg-[#0085FF]/20 flex items-center justify-center shrink-0">
-                                <span className="text-[9px] font-black text-[#0085FF]">{p.name?.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0,2)}</span>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {peers.map((p: any) => {
+                            const cs = p.connectionState || 'none'
+                            return (
+                              <div key={p.id} className="bg-[#0d0d0d] border border-white/[0.05] p-3 flex flex-col gap-2">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-7 h-7 bg-[#0085FF]/20 flex items-center justify-center shrink-0">
+                                    <span className="text-[9px] font-black text-[#0085FF]">{p.name?.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0,2)}</span>
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-bold truncate">{p.name?.split(" ")[0]}</p>
+                                    {p.githubUrl && <a href={p.githubUrl} target="_blank" rel="noopener noreferrer" className="text-[9px] text-[#0085FF]/60 hover:text-[#0085FF] transition-colors">GitHub ↗</a>}
+                                  </div>
+                                </div>
+                                {cs === 'connected' ? (
+                                  <span className="text-[9px] font-bold text-green-400/70 uppercase tracking-wider">Connected ✓</span>
+                                ) : cs === 'pending_out' ? (
+                                  <span className="text-[9px] font-bold text-white/25 uppercase tracking-wider">Request sent</span>
+                                ) : cs === 'pending_in' ? (
+                                  <button onClick={() => handleAcceptConnection(p.connectionId)} className="text-[9px] font-bold text-yellow-400/80 uppercase tracking-wider hover:text-yellow-400 transition-colors text-left">Accept →</button>
+                                ) : (
+                                  <button onClick={() => handleConnect(p.id)} disabled={connectingTo === p.id} className="text-[9px] font-bold text-[#0085FF]/60 hover:text-[#0085FF] uppercase tracking-wider transition-colors text-left disabled:opacity-40">
+                                    {connectingTo === p.id ? '...' : '+ Connect'}
+                                  </button>
+                                )}
                               </div>
-                              <div className="min-w-0">
-                                <p className="text-xs font-bold truncate">{p.name?.split(" ")[0]}</p>
-                                {p.githubUrl && <a href={p.githubUrl} target="_blank" rel="noopener noreferrer" className="text-[9px] text-[#0085FF]/60 hover:text-[#0085FF] transition-colors">GitHub ↗</a>}
-                              </div>
-                            </div>
-                          ))}
+                            )
+                          })}
                         </div>
                       </section>
                     )}

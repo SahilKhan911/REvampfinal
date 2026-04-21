@@ -74,9 +74,9 @@ const config: Config = {
         },
       },
       fontFamily: {
-        headline: ["Space Grotesk", "sans-serif"],
-        body: ["Inter", "sans-serif"],
-        label: ["Space Grotesk", "sans-serif"],
+        headline: ["Google Sans", "Space Grotesk", "sans-serif"],
+        body: ["Google Sans", "Inter", "sans-serif"],
+        label: ["Google Sans", "Space Grotesk", "sans-serif"],
       },
       borderRadius: {
         DEFAULT: "0px",

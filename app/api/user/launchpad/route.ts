@@ -31,19 +31,42 @@ export async function GET(req: NextRequest) {
     { data: sessions },
     { data: myAttendances },
     { data: myHomework },
-    { data: peerEnrollments },
+    { data: peerEnrollmentRows },
   ] = await Promise.all([
     supabase.from('LaunchpadProfile').select('*').eq('userId', userId).single(),
     supabase.from('LaunchpadSession').select('*').eq('isVisible', true).order('week', { ascending: true }).order('day', { ascending: true }),
     supabase.from('LaunchpadAttendance').select('sessionId').eq('userId', userId),
     supabase.from('HomeworkSubmission').select('sessionId, type, content, status, submittedAt').eq('userId', userId),
     supabase.from('Enrollment')
-      .select('userId, user:User(id, name, githubUrl, linkedinUrl)')
+      .select('userId')
       .eq('bundleId', enrollment.bundleId)
       .eq('status', 'ACTIVE')
       .neq('userId', userId)
       .limit(8),
   ])
+
+  const peerIds = (peerEnrollmentRows || []).map((e: any) => e.userId).filter(Boolean)
+
+  // Two-step: fetch peer users + connection states in parallel (avoids PostgREST FK join issues)
+  const [{ data: peerUsers }, { data: myConnections }] = await Promise.all([
+    peerIds.length > 0
+      ? supabase.from('User').select('id, name, githubUrl, linkedinUrl').in('id', peerIds)
+      : Promise.resolve({ data: [] }),
+    peerIds.length > 0
+      ? supabase.from('Connection')
+          .select('id, fromUserId, toUserId, status')
+          .or(`and(fromUserId.eq.${userId},toUserId.in.(${peerIds.join(',')})),and(toUserId.eq.${userId},fromUserId.in.(${peerIds.join(',')}))`)
+      : Promise.resolve({ data: [] }),
+  ])
+
+  // Map connection state per peer
+  const connMap: Record<string, { id: string; state: 'connected' | 'pending_out' | 'pending_in' }> = {}
+  for (const c of (myConnections || [])) {
+    const peerId = c.fromUserId === userId ? c.toUserId : c.fromUserId
+    if (c.status === 'ACCEPTED') connMap[peerId] = { id: c.id, state: 'connected' }
+    else if (c.status === 'PENDING' && c.fromUserId === userId) connMap[peerId] = { id: c.id, state: 'pending_out' }
+    else if (c.status === 'PENDING' && c.toUserId === userId) connMap[peerId] = { id: c.id, state: 'pending_in' }
+  }
 
   const attendedIds = new Set((myAttendances || []).map((a: any) => a.sessionId))
   const homeworkMap = Object.fromEntries((myHomework || []).map((h: any) => [h.sessionId, h]))
@@ -57,7 +80,11 @@ export async function GET(req: NextRequest) {
     })),
     enrolledAt: enrollment.enrolledAt,
     bundle: enrollment.bundle,
-    peers: (peerEnrollments || []).map((p: any) => p.user).filter(Boolean),
+    peers: (peerUsers || []).map((u: any) => ({
+      ...u,
+      connectionId: connMap[u.id]?.id || null,
+      connectionState: connMap[u.id]?.state || 'none',
+    })),
     totalAttended: attendedIds.size,
     totalSessions: (sessions || []).length,
   })

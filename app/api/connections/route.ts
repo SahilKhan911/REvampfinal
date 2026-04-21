@@ -19,8 +19,8 @@ export async function GET(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
   const [{ data: sent }, { data: received }] = await Promise.all([
-    supabase.from('Connection').select('*, toUser:User!Connection_toUserId_fkey(id, name, college, githubUrl, level, xp)').eq('fromUserId', userId),
-    supabase.from('Connection').select('*, fromUser:User!Connection_fromUserId_fkey(id, name, college, githubUrl, level, xp)').eq('toUserId', userId),
+    supabase.from('Connection').select('*, toUser:User!Connection_toUserId_fkey(id, name, college, githubUrl, linkedinUrl, level, xp)').eq('fromUserId', userId),
+    supabase.from('Connection').select('*, fromUser:User!Connection_fromUserId_fkey(id, name, college, githubUrl, linkedinUrl, level, xp)').eq('toUserId', userId),
   ])
 
   const accepted = [
