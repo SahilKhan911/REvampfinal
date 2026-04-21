@@ -231,20 +231,40 @@ function DashboardContent() {
 
   useEffect(() => { loadDashboardData() }, [loadDashboardData])
 
+  const fetchLaunchpadData = useCallback((silent = false) => {
+    if (!silent) setLaunchpadLoading(true)
+    return fetch("/api/user/launchpad")
+      .then(r => r.json())
+      .then(d => {
+        if (!d.error) {
+          setLaunchpadData(d)
+          if (d.profile?.sessionNotes && typeof d.profile.sessionNotes === 'object') {
+            setSessionNotes(d.profile.sessionNotes as Record<string, string>)
+          }
+          fetch('/api/user/launchpad/badges').then(r => r.json()).then(b => { if (Array.isArray(b)) setLaunchpadBadges(b) }).catch(() => {})
+        }
+      })
+      .catch(() => {})
+      .finally(() => { if (!silent) setLaunchpadLoading(false) })
+  }, [])
+
   // Auto-refresh when user returns to this tab (e.g. after checkout in another tab)
   useEffect(() => {
     let lastVisible = Date.now()
     const onVisibility = () => {
       if (document.visibilityState === 'visible') {
-        // Only refresh if away for > 10 seconds to avoid thrashing
-        if (Date.now() - lastVisible > 10_000) loadDashboardData(true)
+        if (Date.now() - lastVisible > 10_000) {
+          loadDashboardData(true)
+          // Also silently refresh launchpad data to pick up live session changes
+          fetchLaunchpadData(true)
+        }
       } else {
         lastVisible = Date.now()
       }
     }
     document.addEventListener('visibilitychange', onVisibility)
     return () => document.removeEventListener('visibilitychange', onVisibility)
-  }, [loadDashboardData])
+  }, [loadDashboardData, fetchLaunchpadData])
 
   useEffect(() => { setActiveTab(tabParam) }, [tabParam])
 
@@ -382,25 +402,19 @@ function DashboardContent() {
 
   useEffect(() => { if (activeTab === "connections") loadConnections() }, [activeTab, loadConnections])
 
+  // Initial load when switching to launchpad tab
   useEffect(() => {
     if (activeTab === "launchpad" && !launchpadData && !launchpadLoading) {
-      setLaunchpadLoading(true)
-      fetch("/api/user/launchpad")
-        .then(r => r.json())
-        .then(d => {
-          if (!d.error) {
-            setLaunchpadData(d)
-            if (d.profile?.sessionNotes && typeof d.profile.sessionNotes === 'object') {
-              setSessionNotes(d.profile.sessionNotes as Record<string, string>)
-            }
-            // load badges in parallel
-            fetch('/api/user/launchpad/badges').then(r => r.json()).then(b => { if (Array.isArray(b)) setLaunchpadBadges(b) }).catch(() => {})
-          }
-        })
-        .catch(() => {})
-        .finally(() => setLaunchpadLoading(false))
+      fetchLaunchpadData(false)
     }
-  }, [activeTab, launchpadData, launchpadLoading])
+  }, [activeTab, launchpadData, launchpadLoading, fetchLaunchpadData])
+
+  // Poll every 30s while on launchpad tab to pick up live status changes from admin
+  useEffect(() => {
+    if (activeTab !== "launchpad" || !launchpadData) return
+    const interval = setInterval(() => fetchLaunchpadData(true), 30_000)
+    return () => clearInterval(interval)
+  }, [activeTab, launchpadData, fetchLaunchpadData])
 
   const handleAddSkill = () => {
     const s = skillInput.trim()
