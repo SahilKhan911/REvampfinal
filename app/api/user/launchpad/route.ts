@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     { data: peerEnrollmentRows },
   ] = await Promise.all([
     supabase.from('LaunchpadProfile').select('*').eq('userId', userId).single(),
-    supabase.from('LaunchpadSession').select('*').eq('isVisible', true).order('week', { ascending: true }).order('day', { ascending: true }),
+    supabase.from('LaunchpadSession').select('id, week, day, title, subtitle, topics, homework, homeworkType, resourceLinks, sessionDate, joinLink, recordingUrl, isVisible, isLive, createdAt').eq('isVisible', true).order('week', { ascending: true }).order('day', { ascending: true }),
     supabase.from('LaunchpadAttendance').select('sessionId').eq('userId', userId),
     supabase.from('HomeworkSubmission').select('sessionId, type, content, status, submittedAt').eq('userId', userId),
     supabase.from('Enrollment')
