@@ -1649,17 +1649,23 @@ function DashboardContent() {
                 const goals: string[] = Array.isArray(profile?.goals) ? profile.goals : []
                 const isAdvanced = profile?.experienceLevel === "advanced"
 
-                // Find live session
-                const liveSession = sessions?.find((s: any) => s.isLive)
+                // Find live session — must be flagged live AND within time window (15min before → 3h after sessionDate)
+                const now = Date.now()
+                const liveSession = sessions?.find((s: any) => {
+                  if (!s.isLive) return false
+                  if (!s.sessionDate) return true // no date set — trust admin flag
+                  const start = new Date(s.sessionDate).getTime()
+                  return now >= start - 15 * 60 * 1000 && now <= start + 3 * 60 * 60 * 1000
+                })
 
                 // Find today's session
-                const today = new Date()
-                today.setHours(0, 0, 0, 0)
+                const todayMidnight = new Date(now)
+                todayMidnight.setHours(0, 0, 0, 0)
                 const todaySession = sessions?.find((s: any) => {
                   if (!s.sessionDate) return false
                   const d = new Date(s.sessionDate)
                   d.setHours(0, 0, 0, 0)
-                  return d.getTime() === today.getTime()
+                  return d.getTime() === todayMidnight.getTime()
                 })
 
                 // Streak: consecutive attended sessions counting back from the most recent past session
@@ -1677,7 +1683,7 @@ function DashboardContent() {
                   .filter((s: any) => {
                     if (!s.sessionDate) return false
                     const sd = new Date(s.sessionDate); sd.setHours(0,0,0,0)
-                    return sd > today
+                    return sd > todayMidnight
                   })
                   .sort((a: any, b: any) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime())[0]
 
