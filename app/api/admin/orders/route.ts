@@ -81,15 +81,28 @@ export async function PATCH(req: NextRequest) {
 
       if (updateErr) throw updateErr
 
-      // 1b. Auto-create Enrollment
+      // 1b. Upsert Enrollment (idempotent — safe to call multiple times)
       if (order.bundleId && order.userId) {
-        const { error: enrollErr } = await supabase.from('Enrollment').insert({
-          id: crypto.randomUUID(),
-          userId: order.userId,
-          bundleId: order.bundleId,
-          status: 'ACTIVE',
-        })
-        if (enrollErr) console.error('Enrollment creation failed:', enrollErr.message)
+        const { data: existing } = await supabase
+          .from('Enrollment')
+          .select('id')
+          .eq('userId', order.userId)
+          .eq('bundleId', order.bundleId)
+          .maybeSingle()
+
+        if (!existing) {
+          const { error: enrollErr } = await supabase.from('Enrollment').insert({
+            id: crypto.randomUUID(),
+            userId: order.userId,
+            bundleId: order.bundleId,
+            status: 'ACTIVE',
+            enrolledAt: new Date().toISOString(),
+          })
+          if (enrollErr) console.error('Enrollment creation failed:', enrollErr.message)
+        } else {
+          // Ensure status is ACTIVE if it was somehow set otherwise
+          await supabase.from('Enrollment').update({ status: 'ACTIVE' }).eq('id', existing.id)
+        }
       }
 
       // 2. Finalize referral code if temp

@@ -16,14 +16,22 @@ export async function GET(req: NextRequest) {
 
   const userId = decoded.userId
 
-  // Check for active launchpad enrollment
-  const { data: allEnrollments } = await supabase
+  // Check for active launchpad enrollment — two-step to avoid FK join issues
+  const { data: enrollmentRows } = await supabase
     .from('Enrollment')
-    .select('id, enrolledAt, bundleId, bundle:Bundle(id, name, startDate, cohortSlug)')
+    .select('id, enrolledAt, bundleId')
     .eq('userId', userId)
     .eq('status', 'ACTIVE')
 
-  const enrollment = (allEnrollments || []).find((e: any) => e.bundle?.cohortSlug === 'launchpad')
+  const bundleIds = (enrollmentRows || []).map((e: any) => e.bundleId).filter(Boolean)
+  const { data: bundleRows } = bundleIds.length > 0
+    ? await supabase.from('Bundle').select('id, name, startDate, cohortSlug').in('id', bundleIds)
+    : { data: [] as any[] }
+
+  const bundleMap: Record<string, any> = Object.fromEntries((bundleRows || []).map((b: any) => [b.id, b]))
+  const allEnrollments = (enrollmentRows || []).map((e: any) => ({ ...e, bundle: bundleMap[e.bundleId] || null }))
+
+  const enrollment = allEnrollments.find((e: any) => e.bundle?.cohortSlug === 'launchpad')
   if (!enrollment) return NextResponse.json({ error: 'Not enrolled in Launchpad' }, { status: 403 })
 
   const [

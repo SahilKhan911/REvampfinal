@@ -36,14 +36,14 @@ export async function POST(req: NextRequest) {
 
   const userId = decoded.userId
 
-  // Verify enrollment
-  const { data: enrollments } = await supabase
-    .from('Enrollment')
-    .select('bundleId, bundle:Bundle(cohortSlug)')
-    .eq('userId', userId)
-    .eq('status', 'ACTIVE')
-
-  const enrolled = (enrollments || []).some((e: any) => e.bundle?.cohortSlug === 'launchpad')
+  // Verify enrollment — two-step to avoid FK join issues
+  const { data: enrollmentRows } = await supabase
+    .from('Enrollment').select('bundleId').eq('userId', userId).eq('status', 'ACTIVE')
+  const bundleIds = (enrollmentRows || []).map((e: any) => e.bundleId).filter(Boolean)
+  const { data: bundleRows } = bundleIds.length > 0
+    ? await supabase.from('Bundle').select('id, cohortSlug').in('id', bundleIds)
+    : { data: [] as any[] }
+  const enrolled = (bundleRows || []).some((b: any) => b.cohortSlug === 'launchpad')
   if (!enrolled) return NextResponse.json({ error: 'Not enrolled in Launchpad' }, { status: 403 })
 
   // Check existing
