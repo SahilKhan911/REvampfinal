@@ -1,11 +1,27 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+let resendInstance: Resend | null = null;
+
+function getResend() {
+  if (!resendInstance) {
+    const key = process.env.RESEND_API_KEY;
+    if (!key) {
+      if (process.env.npm_lifecycle_event === 'build' || process.env.NEXT_PHASE) {
+        resendInstance = new Resend('re_placeholder');
+        return resendInstance;
+      }
+      throw new Error('RESEND_API_KEY is required');
+    }
+    resendInstance = new Resend(key);
+  }
+  return resendInstance;
+}
 
 const FROM_EMAIL = 'REvamp <onboarding@resend.dev>' // Use verified domain in production
 
 export async function sendWelcomeEmail(to: string, name: string) {
   try {
+    const resend = getResend();
     await resend.emails.send({
       from: FROM_EMAIL,
       to,
@@ -27,6 +43,7 @@ export async function sendWelcomeEmail(to: string, name: string) {
 
 export async function sendDomainUpdateEmail(to: string, userName: string, domainName: string, workshopName: string, workshopSlug: string) {
   try {
+    const resend = getResend();
     await resend.emails.send({
       from: FROM_EMAIL,
       to,
@@ -49,6 +66,7 @@ export async function sendDomainUpdateEmail(to: string, userName: string, domain
 
 export async function sendOrderConfirmationEmail(to: string, userName: string, workshopName: string, amount: number) {
   try {
+    const resend = getResend();
     await resend.emails.send({
       from: FROM_EMAIL,
       to,
