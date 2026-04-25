@@ -1,10 +1,15 @@
 import { Resend } from 'resend'
 
-const resendApiKey = process.env.RESEND_API_KEY
+let resendInstance: Resend | null = null
 
-let resend: Resend | null = null
-if (resendApiKey) {
-  resend = new Resend(resendApiKey)
+function getResend() {
+  if (!resendInstance) {
+    const key = process.env.RESEND_API_KEY
+    if (key) {
+      resendInstance = new Resend(key)
+    }
+  }
+  return resendInstance
 }
 
 // ─── 1. PENDING EMAIL (sent on payment submission) ───
@@ -15,6 +20,7 @@ export async function sendPendingEmail(
   bundleName: string,
   amount: number
 ) {
+  const resend = getResend()
   if (!resend) {
     console.warn('RESEND_API_KEY not set, skipping pending email')
     return
@@ -81,6 +87,7 @@ export async function sendPaymentConfirmationEmail(
   bundleName: string,
   referralCode: string
 ) {
+  const resend = getResend()
   if (!resend) {
     console.warn('RESEND_API_KEY not set, skipping confirmation email')
     return
@@ -152,6 +159,7 @@ export async function sendReferralEarningEmail(
   earning: number,
   totalEarnings: number
 ) {
+  const resend = getResend()
   if (!resend) {
     console.warn('RESEND_API_KEY not set, skipping referral email')
     return
