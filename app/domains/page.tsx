@@ -1,7 +1,7 @@
 "use client"
-import Link from "next/link"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import Navbar from "../components/Navbar"
+import InfiniteMenu from "../components/InfiniteMenu"
 
 interface CohortData {
   id: string
@@ -15,251 +15,222 @@ interface CohortData {
 }
 
 const DOMAIN_ICONS: Record<string, string> = {
-  opensource:  "terminal",
-  webdev:      "code",
-  aiml:        "smart_toy",
-  cp:          "trophy",
-  cybersec:    "shield",
-  launchpad:   "rocket_launch",
+  opensource: "terminal",
+  webdev:     "code",
+  aiml:       "smart_toy",
+  cp:         "trophy",
+  cybersec:   "shield",
+  launchpad:  "rocket_launch",
+}
+
+const DOMAIN_IMAGES: Record<string, string> = {
+  opensource: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=900&h=900&fit=crop&auto=format",
+  webdev:     "https://images.unsplash.com/photo-1547658719-da2b51169166?w=900&h=900&fit=crop&auto=format",
+  aiml:       "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=900&h=900&fit=crop&auto=format",
+  cp:         "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=900&h=900&fit=crop&auto=format",
+  cybersec:   "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=900&h=900&fit=crop&auto=format",
+  launchpad:  "https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=900&h=900&fit=crop&auto=format",
 }
 
 export default function DomainsPage() {
   const [cohorts, setCohorts]           = useState<CohortData[]>([])
-  const [user, setUser]                 = useState<any>(null)
-  const [subscribedIds, setSubscribedIds] = useState<string[]>([])
-  const [followLoading, setFollowLoading] = useState<string | null>(null)
   const [loading, setLoading]           = useState(true)
+  const [activeIndex, setActiveIndex]   = useState<number>(0)
+  const menuRef = useRef<any>(null)
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/cohorts").then(r => r.json()).catch(() => []),
-      fetch("/api/user/auth/me").then(r => r.json()).catch(() => ({})),
-      fetch("/api/user/subscriptions").then(r => r.json()).catch(() => ({ subscriptions: [] })),
-    ]).then(([cohortsData, userData, subsData]) => {
-      setCohorts(Array.isArray(cohortsData) ? cohortsData : [])
-      if (userData?.user) setUser(userData.user)
-      setSubscribedIds(
-        (subsData?.subscriptions || [])
-          .map((s: any) => s.cohort?.id || s.cohortId)
-          .filter(Boolean)
-      )
-    }).finally(() => setLoading(false))
+    fetch("/api/cohorts").then(r => r.json()).catch(() => [])
+      .then(data => setCohorts(Array.isArray(data) ? data : []))
+      .finally(() => setLoading(false))
   }, [])
 
-  const handleFollow = async (cohortId: string) => {
-    if (!user) { window.location.href = `/signup?returnTo=/domains`; return }
-    setFollowLoading(cohortId)
-    const isFollowing = subscribedIds.includes(cohortId)
-    try {
-      await fetch("/api/user/subscriptions", {
-        method: isFollowing ? "DELETE" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cohortId }),
-      })
-      setSubscribedIds(prev =>
-        isFollowing ? prev.filter(id => id !== cohortId) : [...prev, cohortId]
-      )
-    } catch {}
-    finally { setFollowLoading(null) }
-  }
+  const menuItems = useMemo(() =>
+    cohorts.map(domain => ({
+      image: DOMAIN_IMAGES[domain.slug] || `https://picsum.photos/seed/${domain.slug}/900/900`,
+      link: `/cohort/${domain.slug}`,
+      title: domain.name,
+      description: domain.tagline
+    })),
+    [cohorts]
+  )
+
+  const handleActiveChange = useCallback((index: number) => {
+    setActiveIndex(index)
+  }, [])
 
   return (
     <div className="min-h-screen bg-black text-white font-body">
       <Navbar />
 
       {/* ═══ HERO ═══ */}
-      <section className="pt-32 pb-16 px-8 border-b border-white/10">
-        <div className="max-w-[1100px] mx-auto">
-          <p className="font-label text-xs tracking-[0.3em] text-[#0085FF] uppercase mb-6">Pick Your Domain</p>
-          <h1 className="font-headline font-bold text-5xl md:text-7xl tracking-tight leading-[0.95] mb-6">
+      <div className="relative" style={{ height: '100vh' }}>
+
+        {/* Sphere — full viewport */}
+        <div className="absolute inset-0 bg-black">
+          {loading ? (
+            <div className="flex items-center justify-center h-full gap-3">
+              <div className="w-6 h-6 border-2 border-[#0085FF] border-t-transparent rounded-full animate-spin" />
+              <span className="font-label text-xs tracking-widest text-white/30 uppercase">Loading domains…</span>
+            </div>
+          ) : (
+            <InfiniteMenu
+              ref={menuRef}
+              {...{ items: menuItems, onActiveItemChange: handleActiveChange } as any}
+            />
+          )}
+        </div>
+
+        {/* Soft radial gradient — darkens top-left only so the sphere is visible */}
+        <div
+          className="absolute inset-0 pointer-events-none z-[6]"
+          style={{
+            background: 'radial-gradient(ellipse 65% 55% at 0% 0%, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.45) 45%, transparent 75%)',
+          }}
+        />
+        {/* Bottom fade into stats section */}
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black to-transparent pointer-events-none z-[6]" />
+
+        {/* Hero text — top-left, compact, does not obscure sphere center */}
+        <div className="absolute top-0 left-0 z-10 pointer-events-none pt-28 px-10 max-w-[420px]">
+          <p className="font-label text-xs tracking-[0.3em] text-[#0085FF] uppercase mb-4">
+            Pick Your Domain
+          </p>
+          <h1 className="font-headline font-bold text-4xl md:text-5xl lg:text-[3.5rem] tracking-tight leading-[0.93] mb-5">
             6 domains.<br />
             <span className="text-[#0085FF]">0 hand-holding.</span>
           </h1>
-          <p className="text-white/40 text-lg max-w-2xl leading-relaxed">
-            Each domain is a focused war room with its own mentors, curriculum, and community.
-            Follow domains to get notified when new workshops drop.
+          <p className="text-white/35 text-sm leading-relaxed max-w-[300px]">
+            Each domain is a focused war room — its own mentors, curriculum, and community.
           </p>
-          {user && subscribedIds.length > 0 && (
-            <p className="text-[#0085FF]/60 text-sm mt-5 flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>interests</span>
-              You follow {subscribedIds.length} of {cohorts.length} domains
-            </p>
-          )}
         </div>
-      </section>
 
-      {/* ═══ DOMAIN LIST ═══ */}
-      <section className="px-8 py-0">
-        <div className="max-w-[1100px] mx-auto">
-
-          {loading ? (
-            <div className="flex items-center justify-center py-32 gap-3">
-              <div className="w-6 h-6 border-2 border-[#0085FF] border-t-transparent rounded-full animate-spin" />
-              <span className="font-label text-xs tracking-widest text-white/30 uppercase">Initializing domains...</span>
-            </div>
-          ) : (
-            <div>
-              {cohorts.map((domain, i) => {
-                const isFollowing = subscribedIds.includes(domain.id)
-                const isLoading   = followLoading === domain.id
-                const index       = String(i + 1).padStart(2, "0")
-                const icon        = DOMAIN_ICONS[domain.slug] || "circle"
-                const workshopCount = (domain.bundles || []).length
-
-                return (
-                  <div
-                    key={domain.id}
-                    className="group relative border-b border-white/5 hover:bg-white/[0.02] transition-colors duration-300"
-                    style={{ borderLeft: `3px solid ${domain.accentHex}` }}
+        {/* Left sidebar — domain nav */}
+        {!loading && cohorts.length > 0 && (
+          <nav className="absolute left-6 bottom-24 z-20 hidden md:flex flex-col gap-1">
+            {cohorts.map((domain, i) => {
+              const isActive = i === activeIndex
+              return (
+                <button
+                  key={domain.id}
+                  onClick={() => menuRef.current?.snapToItem(i)}
+                  className="group flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300 cursor-pointer border-none text-left"
+                  style={{ background: isActive ? 'rgba(0,133,255,0.12)' : 'transparent' }}
+                >
+                  <span
+                    className="block w-[3px] rounded-full transition-all duration-300"
+                    style={{
+                      height: isActive ? '22px' : '10px',
+                      background: isActive ? '#0085FF' : 'rgba(255,255,255,0.15)',
+                    }}
+                  />
+                  <span
+                    className="font-headline font-bold text-xs tracking-wider uppercase transition-all duration-300"
+                    style={{
+                      color: isActive ? '#fff' : 'rgba(255,255,255,0.25)',
+                      textShadow: isActive ? '0 0 20px rgba(0,133,255,0.4)' : 'none',
+                    }}
                   >
-                    <div className="flex flex-col md:flex-row md:items-center gap-6 px-8 py-10">
+                    {domain.name}
+                  </span>
+                  <span
+                    className="material-symbols-outlined text-sm transition-all duration-200"
+                    style={{
+                      color: '#0085FF',
+                      opacity: isActive ? 1 : 0,
+                      transform: isActive ? 'translateX(0)' : 'translateX(-6px)',
+                    }}
+                  >
+                    arrow_forward
+                  </span>
+                </button>
+              )
+            })}
+          </nav>
+        )}
 
-                      {/* Left: Index + Icon */}
-                      <div className="flex items-center gap-5 md:w-[100px] flex-shrink-0">
-                        <span className="font-mono text-xs text-white/20 group-hover:text-white/40 transition-colors select-none">
-                          {index}
-                        </span>
-                        <span
-                          className="material-symbols-outlined text-2xl transition-transform duration-300 group-hover:scale-110"
-                          style={{ color: domain.accentHex, fontVariationSettings: "'FILL' 1" }}
-                        >
-                          {icon}
-                        </span>
-                      </div>
-
-                      {/* Middle: Name + Tagline */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h2 className="font-headline font-bold text-2xl md:text-3xl tracking-tight group-hover:text-white transition-colors">
-                            {domain.name}
-                          </h2>
-                          {isFollowing && (
-                            <span
-                              className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold font-label tracking-widest uppercase border"
-                              style={{ color: domain.accentHex, borderColor: `${domain.accentHex}40` }}
-                            >
-                              <span className="w-1 h-1 rounded-full animate-pulse" style={{ background: domain.accentHex }} />
-                              Following
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-white/40 text-sm leading-relaxed max-w-xl">
-                          {domain.tagline}
-                        </p>
-                      </div>
-
-                      {/* Right meta */}
-                      <div className="flex flex-col md:items-end gap-4 flex-shrink-0">
-                        {/* Workshop count */}
-                        <div className="flex items-center gap-2">
-                          <div className="flex gap-1">
-                            {Array.from({ length: Math.min(workshopCount, 5) }).map((_, j) => (
-                              <span
-                                key={j}
-                                className="w-1.5 h-6 transition-all duration-300"
-                                style={{
-                                  background: domain.accentHex,
-                                  opacity: 0.3 + (j / Math.max(workshopCount - 1, 1)) * 0.7,
-                                }}
-                              />
-                            ))}
-                          </div>
-                          <span className="font-label text-[10px] tracking-widest text-white/30 uppercase">
-                            {workshopCount} workshop{workshopCount !== 1 ? "s" : ""}
-                          </span>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center gap-3">
-                          <button
-                            onClick={() => handleFollow(domain.id)}
-                            disabled={isLoading}
-                            className={`px-4 py-2 font-headline font-bold text-xs tracking-wider uppercase transition-all disabled:opacity-50 border ${
-                              isFollowing
-                                ? "text-white/40 border-white/10 hover:text-red-400 hover:border-red-500/30 bg-transparent"
-                                : "text-white border-white/20 hover:border-white/60 bg-transparent hover:bg-white/5"
-                            }`}
-                          >
-                            {isLoading ? (
-                              <span className="inline-block w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                            ) : isFollowing ? "Unfollow" : "+ Follow"}
-                          </button>
-
-                          <Link
-                            href={`/cohort/${domain.slug}`}
-                            className="flex items-center gap-2 px-4 py-2 font-headline font-bold text-xs tracking-wider uppercase transition-all text-white border"
-                            style={{ borderColor: `${domain.accentHex}60`, color: domain.accentHex }}
-                            onMouseEnter={e => {
-                              const el = e.currentTarget as HTMLElement
-                              el.style.background = `${domain.accentHex}15`
-                            }}
-                            onMouseLeave={e => {
-                              const el = e.currentTarget as HTMLElement
-                              el.style.background = "transparent"
-                            }}
-                          >
-                            Explore
-                            <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Hover accent glow line */}
-                    <div
-                      className="absolute bottom-0 left-0 h-px w-0 group-hover:w-full transition-all duration-500"
-                      style={{ background: `linear-gradient(to right, ${domain.accentHex}60, transparent)` }}
-                    />
-                  </div>
-                )
-              })}
+        {/* Right sidebar — active domain info */}
+        {!loading && cohorts.length > 0 && cohorts[activeIndex] && (
+          <div className="absolute right-8 top-1/2 -translate-y-1/2 z-20 hidden md:flex flex-col items-end gap-5 max-w-[210px]">
+            <div
+              className="w-11 h-11 rounded-full flex items-center justify-center"
+              style={{ background: `${cohorts[activeIndex].accentHex}20`, border: `1px solid ${cohorts[activeIndex].accentHex}40` }}
+            >
+              <span
+                className="material-symbols-outlined text-lg"
+                style={{ color: cohorts[activeIndex].accentHex, fontVariationSettings: "'FILL' 1" }}
+              >
+                {DOMAIN_ICONS[cohorts[activeIndex].slug] || 'circle'}
+              </span>
             </div>
-          )}
-        </div>
-      </section>
+            <p className="text-right text-xs leading-relaxed transition-all duration-500 text-white/40">
+              {cohorts[activeIndex].tagline}
+            </p>
+            <div className="flex items-baseline gap-2">
+              <span className="font-headline font-bold text-2xl" style={{ color: cohorts[activeIndex].accentHex }}>
+                {cohorts[activeIndex].bundles?.length || 0}
+              </span>
+              <span className="font-label text-[10px] tracking-[0.15em] text-white/30 uppercase">workshops</span>
+            </div>
+            <a
+              href={`/cohort/${cohorts[activeIndex].slug}`}
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-headline font-bold uppercase tracking-wider transition-all duration-300 hover:scale-105"
+              style={{
+                color: cohorts[activeIndex].accentHex,
+                border: `1px solid ${cohorts[activeIndex].accentHex}40`,
+                background: `${cohorts[activeIndex].accentHex}10`,
+              }}
+            >
+              Explore
+              <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            </a>
+          </div>
+        )}
+      </div>
 
-      {/* ═══ STATS BAR ═══ */}
+      {/* ═══ STATS ═══ */}
       {!loading && cohorts.length > 0 && (
-        <section className="border-t border-white/10 mt-0">
-          <div className="max-w-[1100px] mx-auto px-8 py-8 grid grid-cols-3 divide-x divide-white/10">
-            <div className="px-8 text-center">
-              <div className="font-headline font-bold text-3xl text-[#0085FF] mb-1">{cohorts.length}</div>
+        <div className="relative z-20 bg-black">
+          <div className="max-w-[1100px] mx-auto px-8 py-16 grid grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="font-headline font-bold text-4xl text-[#0085FF] mb-2">{cohorts.length}</div>
               <div className="font-label text-[10px] tracking-[0.2em] text-white/30 uppercase">Active Domains</div>
             </div>
-            <div className="px-8 text-center">
-              <div className="font-headline font-bold text-3xl text-[#0085FF] mb-1">
+            <div className="text-center">
+              <div className="font-headline font-bold text-4xl text-[#0085FF] mb-2">
                 {cohorts.reduce((sum, c) => sum + (c.bundles?.length || 0), 0)}
               </div>
               <div className="font-label text-[10px] tracking-[0.2em] text-white/30 uppercase">Total Workshops</div>
             </div>
-            <div className="px-8 text-center">
-              <div className="font-headline font-bold text-3xl text-[#0085FF] mb-1">Free</div>
+            <div className="text-center">
+              <div className="font-headline font-bold text-4xl text-[#0085FF] mb-2">Free</div>
               <div className="font-label text-[10px] tracking-[0.2em] text-white/30 uppercase">To Preview</div>
             </div>
           </div>
-        </section>
+        </div>
       )}
 
       {/* ═══ CTA ═══ */}
-      <section className="py-24 px-8 bg-[#0085FF]">
-        <div className="max-w-[900px] mx-auto text-center">
-          <h2 className="font-headline font-bold text-4xl md:text-6xl tracking-tight text-white leading-[0.95] mb-6">
-            Can&apos;t decide? <span className="text-black">Start for free.</span>
-          </h2>
-          <p className="text-white/80 text-lg mb-10">
-            Every domain has a free preview event. Join the community, attend a session, then commit.
-          </p>
-          <a
-            href="/community"
-            className="inline-block bg-black text-white px-10 py-4 font-headline font-bold text-sm hover:bg-[#111] transition-colors"
-          >
-            Join Community →
-          </a>
-        </div>
-      </section>
+      <div className="relative z-20">
+        <section className="py-28 px-8" style={{ background: 'linear-gradient(180deg, #000 0%, #0055aa 40%, #0085FF 100%)' }}>
+          <div className="max-w-[900px] mx-auto text-center">
+            <h2 className="font-headline font-bold text-4xl md:text-6xl tracking-tight text-white leading-[0.95] mb-6">
+              Can&apos;t decide? <span className="text-black/80">Start for free.</span>
+            </h2>
+            <p className="text-white/70 text-lg mb-10 max-w-lg mx-auto">
+              Every domain has a free preview event. Join the community, attend a session, then commit.
+            </p>
+            <a
+              href="/community"
+              className="inline-block bg-black text-white px-10 py-4 rounded-full font-headline font-bold text-sm hover:bg-white hover:text-black transition-all duration-300"
+            >
+              Join Community →
+            </a>
+          </div>
+        </section>
+      </div>
 
       {/* ═══ FOOTER ═══ */}
-      <footer className="border-t border-white/10 bg-black">
+      <footer className="bg-black">
         <div className="max-w-[1100px] mx-auto px-8 py-12 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-xs text-white/20 tracking-wider uppercase">© 2026 REVAMP. All rights reserved.</p>
           <div className="flex gap-6">

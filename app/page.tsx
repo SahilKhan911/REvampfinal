@@ -1,5 +1,7 @@
 import Link from "next/link"
 import Navbar from "./components/Navbar"
+import DomainsFlowingMenu from "./components/DomainsFlowingMenu"
+import ScrollReveal from "./components/ScrollReveal"
 
 /* ═══ DATA ═══ */
 const LIVE_FEED = [
@@ -19,14 +21,6 @@ const TESTIMONIALS = [
   { q: "I stopped chasing certificates and started shipping. REvamp didn't teach me to code. It taught me to build.", name: "Rohan J.", role: "Founding Engineer, Stealth" },
 ]
 
-const DOMAINS = [
-  { slug: "opensource", name: "Open Source", icon: "terminal", accent: "#0085FF" },
-  { slug: "webdev", name: "Web Dev", icon: "code", accent: "#8FDAFF" },
-  { slug: "aiml", name: "AI / ML", icon: "smart_toy", accent: "#FF6B6B" },
-  { slug: "cp", name: "Competitive Programming", icon: "trophy", accent: "#BAFF1A" },
-  { slug: "cybersec", name: "Cyber Security", icon: "shield", accent: "#FF1AFF" },
-  { slug: "launchpad", name: "College Starter", icon: "rocket_launch", accent: "#FFD700" },
-]
 
 const STATS = [
   { num: "2,000+", label: "Students" },
@@ -63,25 +57,25 @@ export default function LandingPage() {
             </p>
 
             <div className="flex flex-wrap gap-4">
-              <Link href="/domains" className="bg-[#0085FF] text-white px-8 py-4 font-headline font-bold text-sm tracking-wide hover:bg-[#0070DD] transition-colors">
+              <Link href="/domains" className="bg-[#0085FF] text-white px-8 py-4 font-headline font-extrabold text-sm tracking-wide shadow-neumorph hover:shadow-neumorph-inset transition-all rounded-2xl">
                 Pick Your Domain →
               </Link>
-              <Link href="/about" className="border border-white/20 text-white px-8 py-4 font-headline font-bold text-sm tracking-wide hover:bg-white/5 transition-colors">
+              <Link href="/about" className="text-white px-8 py-4 font-headline font-extrabold text-sm tracking-wide neumorph-panel hover:shadow-neumorph-inset transition-all">
                 How It Works
               </Link>
             </div>
           </div>
 
           {/* Right: Live Feed */}
-          <div className="lg:col-span-5 relative h-[480px] overflow-hidden border border-white/10 bg-[#0a0a0a]">
-            <div className="absolute top-0 left-0 right-0 z-20 bg-[#0a0a0a] px-5 py-3 border-b border-white/10 flex items-center gap-2">
+          <div className="lg:col-span-5 relative h-[480px] overflow-hidden neumorph-panel">
+            <div className="absolute top-0 left-0 right-0 z-20 bg-[var(--neumorph-bg)] px-5 py-3 shadow-md flex items-center gap-2">
               <span className="w-2 h-2 bg-[#0085FF] animate-pulse" />
               <span className="font-label text-[10px] tracking-[0.2em] text-white/40 uppercase">Happening Right Now</span>
             </div>
             <div className="absolute inset-0 z-10 bg-gradient-to-b from-[#0a0a0a] via-transparent to-[#0a0a0a] pointer-events-none" />
             <div className="pt-12 px-5 space-y-4 animate-scroll-up">
               {[...LIVE_FEED, ...LIVE_FEED].map((item, i) => (
-                <div key={i} className="p-4 bg-white/[0.03] border border-white/5 hover:border-white/10 transition-colors">
+                <div key={i} className="p-4 neumorph-inset transition-all">
                   <p className="text-[11px] font-label tracking-wide text-[#0085FF] mb-1">{item.label}</p>
                   <p className="font-headline font-bold text-sm text-white/90">{item.msg}</p>
                   <p className="text-[10px] text-white/25 mt-1 font-label tracking-wider">{item.sub}</p>
@@ -95,11 +89,11 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════ */}
       {/* STATS BAR                              */}
       {/* ═══════════════════════════════════════ */}
-      <section className="border-y border-white/10 bg-[#0a0a0a]">
+      <section className="py-8 bg-black">
         <div className="max-w-[1400px] mx-auto grid grid-cols-2 md:grid-cols-4">
           {STATS.map((s, i) => (
             <div key={i} className={`py-10 px-8 text-center ${i > 0 ? "border-l border-white/10" : ""}`}>
-              <div className="font-headline font-bold text-3xl md:text-4xl text-[#0085FF] mb-1">{s.num}</div>
+              <div className="font-headline font-extrabold text-3xl md:text-4xl text-[#0085FF] mb-1 drop-shadow-lg">{s.num}</div>
               <div className="font-label text-[10px] tracking-[0.2em] text-white/40 uppercase">{s.label}</div>
             </div>
           ))}
@@ -107,65 +101,48 @@ export default function LandingPage() {
       </section>
 
       {/* ═══════════════════════════════════════ */}
-      {/* ABOUT TEASER — Short hook to /about    */}
+      {/* SCROLL REVEAL — WHY REVAMP            */}
       {/* ═══════════════════════════════════════ */}
-      <section className="py-32 px-8 border-b border-white/10">
-        <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-          <div>
-            <div className="w-10 h-1 bg-[#0085FF] mb-8" />
-            <h2 className="font-headline font-bold text-4xl md:text-6xl leading-tight tracking-tight mb-6">
-              Everyone told you to &ldquo;learn DSA and apply.&rdquo; <span className="text-[#0085FF]">That&apos;s the trap.</span>
-            </h2>
-            <p className="text-lg text-white/50 leading-relaxed mb-8">
-              College teaches you to pass exams. We teach you to clear interviews, ship products, and contribute to codebases used by millions. 619 students in one Discord call at 2 AM. That&apos;s the energy.
-            </p>
+      <section className="py-36 px-8 border-b border-white/10 bg-black">
+        <div className="max-w-[1000px] mx-auto">
+          <p className="font-label text-xs tracking-[0.3em] text-[#0085FF] uppercase mb-14">Why REvamp</p>
+
+          <ScrollReveal
+            scrollContainerRef={undefined}
+            baseOpacity={0.04}
+            enableBlur={true}
+            baseRotation={4}
+            blurStrength={10}
+            textClassName="font-headline text-4xl md:text-5xl lg:text-[3.5rem] leading-[1.15] tracking-tight text-white"
+            wordAnimationEnd="bottom center"
+          >
+            You know how to code. You&apos;ve watched the tutorials. Done the grind. But ask yourself — when did you last ship something real? Something with users, with commits, with a link you&apos;d actually show someone? If that question makes you uncomfortable, you&apos;re in the right place. Over 2,000 students stopped learning in isolation and started building in public, together. 619 showed up to one call at 3 AM. Not because they had to. Because this is what obsession feels like when you find the right room.
+          </ScrollReveal>
+
+          <div className="mt-14">
             <Link href="/about" className="inline-flex items-center gap-2 font-headline font-bold text-[#0085FF] text-sm hover:underline">
               Read our story <span className="material-symbols-outlined text-sm">arrow_forward</span>
             </Link>
-          </div>
-          <div className="overflow-hidden border border-white/10">
-            <img
-              alt="REvamp community session"
-              className="w-full h-[400px] object-cover grayscale hover:grayscale-0 transition-all duration-700"
-              src="/images/social-proof.png"
-            />
           </div>
         </div>
       </section>
 
       {/* ═══════════════════════════════════════ */}
-      {/* DOMAINS — Quick grid linking to /domains */}
+      {/* DOMAINS                                */}
       {/* ═══════════════════════════════════════ */}
-      <section className="py-32 px-8 bg-[#0a0a0a] border-b border-white/10">
-        <div className="max-w-[1400px] mx-auto">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-16">
-            <div>
-              <div className="w-10 h-1 bg-[#0085FF] mb-6" />
-              <h2 className="font-headline font-bold text-4xl md:text-6xl tracking-tight mb-4">6 domains. 0 hand-holding.</h2>
-              <p className="text-white/40 text-lg max-w-lg">Pick the one that scares you slightly. That&apos;s usually the right one.</p>
-            </div>
-            <Link href="/domains" className="mt-6 md:mt-0 inline-flex items-center gap-2 font-headline font-bold text-[#0085FF] text-sm hover:underline">
-              View all domains <span className="material-symbols-outlined text-sm">arrow_forward</span>
-            </Link>
+      <section className="border-b border-white/10">
+        <div className="max-w-[1400px] mx-auto px-8 pt-32 pb-12 flex flex-col md:flex-row md:items-end justify-between">
+          <div>
+            <div className="w-10 h-1 bg-[#0085FF] mb-6" />
+            <h2 className="font-headline font-extrabold text-4xl md:text-6xl tracking-tight mb-4">6 domains. 0 hand-holding.</h2>
+            <p className="text-white/40 text-lg max-w-lg">Pick the one that scares you slightly. That&apos;s usually the right one.</p>
           </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-px bg-white/10">
-            {DOMAINS.map((d) => (
-              <Link
-                key={d.slug}
-                href={`/cohort/${d.slug}`}
-                className="bg-[#0a0a0a] p-8 group hover:bg-[#111] transition-colors flex flex-col items-center text-center"
-              >
-                <span
-                  className="material-symbols-outlined text-3xl mb-4 group-hover:scale-110 transition-transform"
-                  style={{ color: d.accent, fontVariationSettings: "'FILL' 1" }}
-                >
-                  {d.icon}
-                </span>
-                <h3 className="font-headline font-bold text-sm group-hover:text-[#0085FF] transition-colors">{d.name}</h3>
-              </Link>
-            ))}
-          </div>
+          <Link href="/domains" className="mt-6 md:mt-0 inline-flex items-center gap-2 font-headline font-bold text-[#0085FF] text-sm hover:underline shrink-0">
+            Explore all domains <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          </Link>
+        </div>
+        <div className="h-[540px]">
+          <DomainsFlowingMenu />
         </div>
       </section>
 
@@ -177,7 +154,7 @@ export default function LandingPage() {
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-16">
             <div>
               <div className="w-10 h-1 bg-[#FFD700] mb-6" />
-              <h2 className="font-headline font-bold text-4xl md:text-6xl tracking-tight mb-4">Upcoming Events</h2>
+              <h2 className="font-headline font-extrabold text-4xl md:text-6xl tracking-tight mb-4">Upcoming Events</h2>
               <p className="text-white/40 text-lg max-w-lg">Live sessions, workshops, and bootcamps. Free to start.</p>
             </div>
             <Link href="/events" className="mt-6 md:mt-0 inline-flex items-center gap-2 font-headline font-bold text-[#0085FF] text-sm hover:underline">
@@ -191,7 +168,7 @@ export default function LandingPage() {
               { slug: "launchpad", title: "College Starter Pack", date: "27 JUNE", count: "345+", accent: "#FFD700" },
               { slug: "webdev", title: "Full-Stack in 7 Days", date: "28 JUNE", count: "312+", accent: "#8FDAFF" },
             ].map((e, i) => (
-              <Link key={i} href={`/cohort/${e.slug}`} className="group block p-8 bg-[#0a0a0a] border border-white/10 hover:border-white/20 transition-colors">
+              <Link key={i} href={`/cohort/${e.slug}`} className="group block p-8 neumorph-panel hover:scale-[1.02] transition-transform">
                 <div className="flex items-center justify-between mb-4">
                   <span className="font-label text-xs tracking-wider text-white/30">{e.date}</span>
                   <span className="flex items-center gap-1.5">
@@ -217,7 +194,7 @@ export default function LandingPage() {
       <section className="py-20 border-b border-white/10 overflow-hidden">
         <div className="flex animate-marquee gap-6">
           {[...TESTIMONIALS, ...TESTIMONIALS].map((t, i) => (
-            <div key={i} className="min-w-[400px] max-w-[400px] p-8 border border-white/10 bg-[#0a0a0a] flex-shrink-0">
+            <div key={i} className="min-w-[400px] max-w-[400px] p-8 neumorph-panel flex-shrink-0">
               <p className="text-lg text-white/70 leading-relaxed mb-6">&ldquo;{t.q}&rdquo;</p>
               <div className="flex items-center gap-3">
                 <div className="w-1 h-8 bg-[#0085FF]" />
@@ -234,14 +211,14 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════ */}
       {/* FINAL CTA                              */}
       {/* ═══════════════════════════════════════ */}
-      <section className="relative py-40 px-8 bg-[#0085FF] overflow-hidden">
+      <section className="relative py-40 px-8 bg-black overflow-hidden border-t border-white/10">
         <div className="absolute inset-0 brutalist-grid opacity-20" />
         <div className="relative z-10 max-w-[900px] mx-auto text-center">
           <h2 className="font-headline font-bold text-5xl md:text-7xl lg:text-8xl tracking-tight text-white leading-[0.95] mb-8">
             Your resume is empty. Your GitHub is greener. <span className="text-black">Which one matters?</span>
           </h2>
           <p className="text-white/80 text-lg mb-12 max-w-md mx-auto">Next batch starts soon. We don&apos;t do waitlists. You&apos;re either in or you&apos;re catching up.</p>
-          <Link href="/events" className="inline-block bg-black text-white px-12 py-5 font-headline font-bold text-lg tracking-wide hover:bg-[#111] transition-colors">
+          <Link href="/events" className="inline-block bg-[#0085FF] text-white px-12 py-5 font-headline font-extrabold text-lg tracking-wide neumorph-panel hover:shadow-neumorph-inset transition-all">
             I&apos;m In →
           </Link>
         </div>
@@ -289,7 +266,7 @@ export default function LandingPage() {
       </footer>
 
       {/* ═══ FLOATING DOCK ═══ */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 glass-panel rounded-full px-5 py-2.5 border border-white/10">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 neumorph-panel rounded-full px-5 py-2.5">
         <a className="text-white/60 p-2 hover:text-indigo-400 hover:scale-110 transition-all" href="https://discord.gg/68J8FHAMfh" target="_blank" rel="noopener noreferrer" title="Discord">
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
         </a>
