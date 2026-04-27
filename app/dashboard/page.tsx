@@ -1324,53 +1324,132 @@ function DashboardContent() {
           )}
 
           {/* ─────────────────────────── DOMAINS TAB ─── */}
-          {activeTab === "domains" && (
-            <div className="max-w-5xl mx-auto px-6 md:px-8 py-8 space-y-6 animate-in fade-in duration-300">
+          {activeTab === "domains" && (() => {
+            const followedCohorts = allCohorts.filter((c: any) => subscribedIds.includes(c.id))
+            const discoverCohorts = allCohorts.filter((c: any) => !subscribedIds.includes(c.id))
+            return (
+            <div className="max-w-5xl mx-auto px-6 md:px-8 py-8 space-y-10 animate-in fade-in duration-300">
               <div>
                 <h1 className="font-headline font-black text-4xl tracking-tight">Domains</h1>
-                <p className="text-white/30 text-sm mt-1">Follow a domain to get notified when new workshops drop.</p>
+                <p className="text-white/30 text-sm mt-1">Follow domains to get notified when new workshops drop.</p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {allCohorts.map((cohort: any) => {
-                  const isFollowing = subscribedIds.includes(cohort.id)
-                  const isLoading = followLoading === cohort.id
-                  return (
-                    <div
-                      key={cohort.id}
-                      className="bg-[#0d0d0d] border border-white/[0.06] hover:border-white/10 p-5 transition-all flex flex-col group relative overflow-hidden"
-                      style={{ borderLeft: `3px solid ${cohort.accentHex || "#333"}` }}
-                    >
-                      <div className="absolute bottom-0 left-0 h-px w-0 group-hover:w-full transition-all duration-500" style={{ background: `${cohort.accentHex || "#0085FF"}30` }} />
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="text-2xl">{cohort.emoji}</span>
-                        <h3 className="font-headline font-bold text-sm">{cohort.name}</h3>
-                        {isFollowing && <span className="ml-auto text-[8px] bg-green-500/10 text-green-400 border border-green-500/20 px-1.5 py-0.5 font-black uppercase">On</span>}
-                      </div>
-                      <p className="text-white/30 text-xs line-clamp-2 mb-3 flex-1">{cohort.description}</p>
-                      <p className="text-white/15 text-[10px] mb-4">{(cohort.bundles || []).length} workshops</p>
-                      <div className="flex items-center gap-2">
-                        <Link href={`/cohort/${cohort.slug}`} className="text-[#0085FF] text-xs font-bold hover:underline flex-1">Visit →</Link>
-                        <button
-                          onClick={() => isFollowing ? handleUnsubscribe(cohort.id) : handleSubscribe(cohort.id)}
-                          disabled={isLoading}
-                          className={`px-4 py-1.5 font-bold text-xs transition-all disabled:opacity-50 ${
-                            isFollowing
-                              ? "bg-white/[0.04] text-white/40 border border-white/[0.08] hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20"
-                              : "text-white font-bold"
-                          }`}
-                          style={!isFollowing ? { background: cohort.accentHex || "#0085FF" } : {}}
-                        >
-                          {isLoading
-                            ? <span className="inline-block w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
-                            : isFollowing ? "Following ✓" : "Follow"}
-                        </button>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+
+              {/* ── Following section ── */}
+              {followedCohorts.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm text-green-400">bookmark</span>
+                    <p className="text-[11px] font-black uppercase tracking-widest text-white/40">Following</p>
+                    <span className="text-[10px] font-bold text-green-400/70 bg-green-500/10 border border-green-500/15 px-2 py-0.5">{followedCohorts.length}</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {followedCohorts.map((cohort: any) => {
+                      const isLoading = followLoading === cohort.id
+                      const accent = cohort.accentHex || "#0085FF"
+                      return (
+                        <div key={cohort.id} className="relative group overflow-hidden"
+                          style={{ background: `linear-gradient(135deg, ${accent}08 0%, rgba(13,13,13,0.95) 60%)`, border: `1px solid ${accent}30` }}>
+                          {/* glow corner */}
+                          <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full opacity-20 blur-2xl pointer-events-none" style={{ background: accent }} />
+                          {/* top accent bar */}
+                          <div className="h-0.5 w-full" style={{ background: `linear-gradient(90deg, ${accent}, transparent)` }} />
+                          <div className="p-5 flex gap-4 items-start">
+                            {/* emoji bubble */}
+                            <div className="w-12 h-12 flex items-center justify-center text-2xl shrink-0 rounded-xl" style={{ background: `${accent}18`, border: `1px solid ${accent}30` }}>
+                              {cohort.emoji}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-headline font-black text-base">{cohort.name}</h3>
+                                <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-sm" style={{ background: `${accent}20`, color: accent }}>Live</span>
+                              </div>
+                              <p className="text-white/40 text-xs line-clamp-2 mb-3">{cohort.description}</p>
+                              <div className="flex items-center gap-3">
+                                <Link href={`/cohort/${cohort.slug}`}
+                                  className="text-xs font-bold px-3 py-1.5 transition-all hover:opacity-80"
+                                  style={{ background: `${accent}20`, color: accent, border: `1px solid ${accent}30` }}>
+                                  View workshops →
+                                </Link>
+                                <button
+                                  onClick={() => handleUnsubscribe(cohort.id)}
+                                  disabled={isLoading}
+                                  className="text-[10px] font-bold text-white/20 hover:text-red-400 transition-colors disabled:opacity-40 flex items-center gap-1"
+                                >
+                                  {isLoading
+                                    ? <span className="inline-block w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+                                    : <><span className="material-symbols-outlined text-[14px]">bookmark_remove</span> Unfollow</>}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="px-5 pb-3 flex items-center gap-2 border-t border-white/[0.03]">
+                            <span className="material-symbols-outlined text-[12px] text-white/20">layers</span>
+                            <span className="text-[10px] text-white/25">{(cohort.bundles || []).length} workshops</span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Discover section ── */}
+              {discoverCohorts.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm text-white/30">explore</span>
+                    <p className="text-[11px] font-black uppercase tracking-widest text-white/40">
+                      {followedCohorts.length > 0 ? "Discover More" : "All Domains"}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {discoverCohorts.map((cohort: any) => {
+                      const isLoading = followLoading === cohort.id
+                      const accent = cohort.accentHex || "#0085FF"
+                      return (
+                        <div key={cohort.id}
+                          className="relative bg-[#0d0d0d] border border-white/[0.06] hover:border-white/[0.12] p-5 flex flex-col group transition-all duration-300 overflow-hidden cursor-default">
+                          {/* hover glow */}
+                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                            style={{ background: `radial-gradient(ellipse at top left, ${accent}08, transparent 60%)` }} />
+                          {/* emoji */}
+                          <div className="w-11 h-11 flex items-center justify-center text-2xl mb-4 rounded-xl bg-white/[0.03] border border-white/[0.06] group-hover:border-white/[0.1] transition-colors">
+                            {cohort.emoji}
+                          </div>
+                          <h3 className="font-headline font-black text-sm mb-1">{cohort.name}</h3>
+                          <p className="text-white/30 text-xs line-clamp-2 mb-4 flex-1">{cohort.description}</p>
+                          <div className="flex items-center justify-between mt-auto">
+                            <span className="text-[10px] text-white/20 flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[12px]">layers</span>
+                              {(cohort.bundles || []).length} workshops
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <Link href={`/cohort/${cohort.slug}`} className="text-[11px] text-white/30 hover:text-white/60 font-bold transition-colors">Visit →</Link>
+                              <button
+                                onClick={() => handleSubscribe(cohort.id)}
+                                disabled={isLoading}
+                                className="px-3 py-1.5 text-[11px] font-black text-white uppercase tracking-wide transition-all hover:opacity-90 disabled:opacity-40"
+                                style={{ background: accent }}
+                              >
+                                {isLoading
+                                  ? <span className="inline-block w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                                  : "Follow"}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {allCohorts.length === 0 && (
+                <div className="text-center py-20 text-white/20 text-sm">No domains yet.</div>
+              )}
             </div>
-          )}
+            )
+          })()}
 
           {/* ──────────────────── ACHIEVEMENTS TAB ─── */}
           {activeTab === "achievements" && (
