@@ -307,19 +307,20 @@ function DashboardContent() {
 
   const handleUnsubscribe = useCallback(async (cohortId: string) => {
     setFollowLoading(cohortId)
-    // Snapshot for revert
-    let snapshot: any = null
-    setData((prev: any) => {
-      if (!prev) return prev
-      snapshot = prev
-      return { ...prev, subscriptions: (prev.subscriptions || []).filter((s: any) => s.cohortId !== cohortId && s.cohort?.id !== cohortId) }
-    })
+    // Optimistic remove
+    setData((prev: any) => prev ? {
+      ...prev,
+      subscriptions: (prev.subscriptions || []).filter((s: any) => s.cohortId !== cohortId && s.cohort?.id !== cohortId)
+    } : prev)
     try {
       const res = await fetch("/api/user/subscriptions", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cohortId }) }).then(r => r.json())
       if (res.error) throw new Error(res.error)
     } catch (e) {
-      // Revert on failure
-      if (snapshot) setData(snapshot)
+      // Revert: re-add optimistic entry so UI doesn't silently lie
+      setData((prev: any) => prev ? {
+        ...prev,
+        subscriptions: [{ id: `tmp_${cohortId}`, cohort: { id: cohortId }, cohortId }, ...(prev.subscriptions || [])]
+      } : prev)
       console.error('Unsubscribe failed:', e)
     } finally { setFollowLoading(null) }
   }, [])
