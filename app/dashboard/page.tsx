@@ -287,30 +287,41 @@ function DashboardContent() {
 
   const handleSubscribe = useCallback(async (cohortId: string) => {
     setFollowLoading(cohortId)
+    // Optimistic add
+    setData((prev: any) => prev ? {
+      ...prev,
+      subscriptions: [{ id: `tmp_${cohortId}`, cohort: { id: cohortId }, cohortId }, ...(prev.subscriptions || [])]
+    } : prev)
     try {
+      const res = await fetch("/api/user/subscriptions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cohortId }) }).then(r => r.json())
+      if (res.error) throw new Error(res.error)
+    } catch (e) {
+      // Revert on failure
       setData((prev: any) => prev ? {
-        ...prev, 
-        subscriptions: [{ id: Math.random().toString(), cohort: { id: cohortId }, cohortId }, ...(prev.subscriptions || [])]
+        ...prev,
+        subscriptions: (prev.subscriptions || []).filter((s: any) => s.id !== `tmp_${cohortId}`)
       } : prev)
-      await fetch("/api/user/subscriptions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cohortId }) })
-      const res = await fetch("/api/user/dashboard", { cache: 'no-store' }).then(r => r.json())
-      if (!res.error) setData(res)
-    } catch (e) { console.error(e) }
-    finally { setFollowLoading(null) }
+      console.error('Subscribe failed:', e)
+    } finally { setFollowLoading(null) }
   }, [])
 
   const handleUnsubscribe = useCallback(async (cohortId: string) => {
     setFollowLoading(cohortId)
+    // Snapshot for revert
+    let snapshot: any = null
+    setData((prev: any) => {
+      if (!prev) return prev
+      snapshot = prev
+      return { ...prev, subscriptions: (prev.subscriptions || []).filter((s: any) => s.cohortId !== cohortId && s.cohort?.id !== cohortId) }
+    })
     try {
-      setData((prev: any) => prev ? {
-        ...prev,
-        subscriptions: (prev.subscriptions || []).filter((s: any) => s.cohort?.id !== cohortId && s.cohortId !== cohortId)
-      } : prev)
-      await fetch("/api/user/subscriptions", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cohortId }) })
-      const res = await fetch("/api/user/dashboard", { cache: 'no-store' }).then(r => r.json())
-      if (!res.error) setData(res)
-    } catch (e) { console.error(e) }
-    finally { setFollowLoading(null) }
+      const res = await fetch("/api/user/subscriptions", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cohortId }) }).then(r => r.json())
+      if (res.error) throw new Error(res.error)
+    } catch (e) {
+      // Revert on failure
+      if (snapshot) setData(snapshot)
+      console.error('Unsubscribe failed:', e)
+    } finally { setFollowLoading(null) }
   }, [])
 
   const loadPeersAndDiscussions = useCallback(async (bundleId: string) => {
@@ -497,7 +508,7 @@ function DashboardContent() {
   const { user, orders, enrollments, subscriptions, referredUsers, totalEarnings, achievements, redemptions, totalRedeemed, availableBalance } = data
   const isRealCode = Boolean(user.referralCode && !user.referralCode.startsWith("tmp_"))
   const pendingOrders = (orders || []).filter((o: any) => o.status === "pending").length
-  const subscribedIds = (subscriptions || []).map((s: any) => s.cohort?.id).filter(Boolean)
+  const subscribedIds = (subscriptions || []).map((s: any) => s.cohort?.id || s.cohortId).filter(Boolean)
   const initials = user.name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2)
   const unlockedSlugs = new Set((achievements?.unlocked || []).map((a: any) => a.slug))
   const xpProgress = user.nextLevelXp > 0 ? Math.min(100, Math.round((user.xp / user.nextLevelXp) * 100)) : 100
@@ -1348,44 +1359,32 @@ function DashboardContent() {
                       const accent = cohort.accentHex || "#0085FF"
                       return (
                         <div key={cohort.id} className="relative group overflow-hidden"
-                          style={{ background: `linear-gradient(135deg, ${accent}08 0%, rgba(13,13,13,0.95) 60%)`, border: `1px solid ${accent}30` }}>
-                          {/* glow corner */}
-                          <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full opacity-20 blur-2xl pointer-events-none" style={{ background: accent }} />
-                          {/* top accent bar */}
+                          style={{ background: `rgba(13,13,13,0.95)`, border: `1px solid ${accent}40` }}>
                           <div className="h-0.5 w-full" style={{ background: `linear-gradient(90deg, ${accent}, transparent)` }} />
-                          <div className="p-5 flex gap-4 items-start">
-                            {/* emoji bubble */}
-                            <div className="w-12 h-12 flex items-center justify-center text-2xl shrink-0 rounded-xl" style={{ background: `${accent}18`, border: `1px solid ${accent}30` }}>
-                              {cohort.emoji}
+                          <div className="p-5">
+                            <div className="flex items-start justify-between gap-3 mb-2">
+                              <h3 className="font-headline font-black text-lg leading-tight">{cohort.name}</h3>
+                              <span className="shrink-0 text-[8px] font-black uppercase tracking-wider px-2 py-1 mt-0.5" style={{ background: `${accent}20`, color: accent }}>Following</span>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-headline font-black text-base">{cohort.name}</h3>
-                                <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-sm" style={{ background: `${accent}20`, color: accent }}>Live</span>
-                              </div>
-                              <p className="text-white/40 text-xs line-clamp-2 mb-3">{cohort.description}</p>
-                              <div className="flex items-center gap-3">
-                                <Link href={`/cohort/${cohort.slug}`}
-                                  className="text-xs font-bold px-3 py-1.5 transition-all hover:opacity-80"
-                                  style={{ background: `${accent}20`, color: accent, border: `1px solid ${accent}30` }}>
-                                  View workshops →
-                                </Link>
-                                <button
-                                  onClick={() => handleUnsubscribe(cohort.id)}
-                                  disabled={isLoading}
-                                  className="text-[10px] font-bold text-white/20 hover:text-red-400 transition-colors disabled:opacity-40 flex items-center gap-1"
-                                >
-                                  {isLoading
-                                    ? <span className="inline-block w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
-                                    : <><span className="material-symbols-outlined text-[14px]">bookmark_remove</span> Unfollow</>}
-                                </button>
-                              </div>
+                            <p className="text-white/35 text-xs line-clamp-2 mb-4">{cohort.description}</p>
+                            <div className="flex items-center gap-3">
+                              <Link href={`/cohort/${cohort.slug}`}
+                                className="text-xs font-bold px-3 py-1.5 transition-all hover:opacity-80"
+                                style={{ background: `${accent}18`, color: accent, border: `1px solid ${accent}30` }}>
+                                View workshops →
+                              </Link>
+                              <button
+                                onClick={() => handleUnsubscribe(cohort.id)}
+                                disabled={isLoading}
+                                className="text-[10px] font-bold text-white/20 hover:text-red-400 transition-colors disabled:opacity-40 flex items-center gap-1"
+                              >
+                                {isLoading
+                                  ? <span className="inline-block w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+                                  : "Unfollow"}
+                              </button>
                             </div>
                           </div>
-                          <div className="px-5 pb-3 flex items-center gap-2 border-t border-white/[0.03]">
-                            <span className="material-symbols-outlined text-[12px] text-white/20">layers</span>
-                            <span className="text-[10px] text-white/25">{(cohort.bundles || []).length} workshops</span>
-                          </div>
+                          <div className="px-5 pb-3 text-[10px] text-white/20">{(cohort.bundles || []).length} workshops</div>
                         </div>
                       )
                     })}
@@ -1408,22 +1407,14 @@ function DashboardContent() {
                       const accent = cohort.accentHex || "#0085FF"
                       return (
                         <div key={cohort.id}
-                          className="relative bg-[#0d0d0d] border border-white/[0.06] hover:border-white/[0.12] p-5 flex flex-col group transition-all duration-300 overflow-hidden cursor-default">
-                          {/* hover glow */}
+                          className="relative bg-[#0d0d0d] border border-white/[0.06] hover:border-white/[0.12] p-5 flex flex-col group transition-all duration-300 overflow-hidden">
                           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                            style={{ background: `radial-gradient(ellipse at top left, ${accent}08, transparent 60%)` }} />
-                          {/* emoji */}
-                          <div className="w-11 h-11 flex items-center justify-center text-2xl mb-4 rounded-xl bg-white/[0.03] border border-white/[0.06] group-hover:border-white/[0.1] transition-colors">
-                            {cohort.emoji}
-                          </div>
-                          <h3 className="font-headline font-black text-sm mb-1">{cohort.name}</h3>
-                          <p className="text-white/30 text-xs line-clamp-2 mb-4 flex-1">{cohort.description}</p>
+                            style={{ background: `radial-gradient(ellipse at top left, ${accent}0a, transparent 65%)` }} />
+                          <h3 className="font-headline font-black text-base mb-1">{cohort.name}</h3>
+                          <p className="text-white/30 text-xs line-clamp-2 mb-5 flex-1">{cohort.description}</p>
                           <div className="flex items-center justify-between mt-auto">
-                            <span className="text-[10px] text-white/20 flex items-center gap-1">
-                              <span className="material-symbols-outlined text-[12px]">layers</span>
-                              {(cohort.bundles || []).length} workshops
-                            </span>
-                            <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-white/20">{(cohort.bundles || []).length} workshops</span>
+                            <div className="flex items-center gap-3">
                               <Link href={`/cohort/${cohort.slug}`} className="text-[11px] text-white/30 hover:text-white/60 font-bold transition-colors">Visit →</Link>
                               <button
                                 onClick={() => handleSubscribe(cohort.id)}
