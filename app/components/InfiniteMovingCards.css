@@ -1,0 +1,82 @@
+.testimonial-scroller {
+  width: 100%;
+}
+
+.testimonial-track {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 1.25rem;
+  list-style: none;
+  padding: 1.5rem 0;
+  margin: 0;
+  width: max-content;
+  animation: marquee 40s linear infinite;
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* ── Card shell: clips the rotating gradient to produce a travelling border ── */
+.testimonial-card {
+  flex-shrink: 0;
+  width: 380px;
+  border-radius: 1rem;
+  padding: 1.5px;
+  position: relative;
+  overflow: hidden;
+  /* default border – visible before hover */
+  background: rgba(255, 255, 255, 0.08);
+  cursor: default;
+}
+
+/* The spinning conic gradient that forms the travelling glow */
+.testimonial-card::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  /* large square so all four corners are always covered while rotating */
+  width: 200%;
+  aspect-ratio: 1 / 1;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(0, 133, 255, 0.15) 20deg,
+    #0085FF 50deg,
+    rgba(100, 180, 255, 1) 70deg,
+    rgba(0, 133, 255, 0.15) 100deg,
+    transparent 130deg
+  );
+  /* paused by default; play state toggled on hover */
+  animation: spin-border 3s linear infinite paused;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  transform: translate(-50%, -50%) rotate(0deg);
+}
+
+@keyframes spin-border {
+  0%   { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.testimonial-card:hover::before {
+  opacity: 1;
+  animation-play-state: running;
+}
+
+/* Inner card face — sits above the spinning gradient */
+.testimonial-card-body {
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(180deg, #1a1a2e 0%, #111 100%);
+  border-radius: calc(1rem - 1.5px);
+  padding: 1.75rem 2rem;
+  height: 100%;
+  transition: background 0.35s ease;
+}
+
+.testimonial-card:hover .testimonial-card-body {
+  background: linear-gradient(180deg, #1a1a3e 0%, #111 100%);
+}
