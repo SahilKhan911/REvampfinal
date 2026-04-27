@@ -733,7 +733,9 @@ function DashboardContent() {
                         <div className="divide-y divide-white/[0.04]">
                           {(enrollments || []).slice(0, 4).map((en: any) => (
                             <div key={en.id} className="flex items-center gap-4 px-5 py-4 hover:bg-white/[0.025] transition-colors group cursor-default">
-                              <div className="w-10 h-10 flex items-center justify-center text-xl shrink-0" style={{ background: 'rgba(139,92,246,0.1)', borderRadius: '10px' }}>{en.bundle?.cohort?.emoji || '🎓'}</div>
+                              <div className="w-10 h-10 flex items-center justify-center shrink-0" style={{ background: `${en.bundle?.cohort?.accentHex || '#8b5cf6'}18`, borderRadius: '10px', border: `1px solid ${en.bundle?.cohort?.accentHex || '#8b5cf6'}30` }}>
+                                <span className="material-symbols-outlined text-[18px]" style={{ color: en.bundle?.cohort?.accentHex || '#8b5cf6', fontVariationSettings: "'FILL' 1" }}>school</span>
+                              </div>
                               <div className="flex-1 min-w-0">
                                 <p className="font-bold text-sm truncate">{en.bundle?.name}</p>
                                 <p className="text-white/30 text-[11px] truncate">{en.bundle?.cohort?.name || en.bundle?.cohortSlug} · {en.bundle?.duration}</p>
@@ -764,7 +766,6 @@ function DashboardContent() {
                                 className="flex items-center gap-2.5 p-3 hover:bg-white/[0.04] transition-colors group"
                                 style={{ border: `1px solid ${cohort?.accentHex || "#0085FF"}22`, borderRadius: '10px', borderLeft: `3px solid ${cohort?.accentHex || "#0085FF"}` }}
                               >
-                                <span className="text-base">{cohort?.emoji}</span>
                                 <div className="min-w-0">
                                   <p className="text-xs font-bold truncate">{cohort?.name}</p>
                                   <p className="text-white/25 text-[9px]">{cohortFull?.bundles?.length || 0} workshops</p>
@@ -791,7 +792,7 @@ function DashboardContent() {
                       <div className="p-3 space-y-1.5">
                         {[
                           { href: "/domains", label: "Browse Workshops", sub: "Explore all domains", icon: "explore", color: "#0085FF", isLink: true },
-                          ...(isRealCode ? [{ onClick: copyLink, label: copied ? "Copied! ✓" : "Share Referral Link", sub: "Earn ₹100–200 per referral", icon: "share", color: "#FFD700", isLink: false }] : []),
+                          ...(isRealCode ? [{ onClick: copyLink, label: copied ? "Copied" : "Share Referral Link", sub: "Earn ₹100–200 per referral", icon: copied ? "check_circle" : "share", color: "#FFD700", isLink: false }] : []),
                           { onClick: () => switchTab("resources"), label: "Free Resources", sub: "Cheatsheets, roadmaps, templates", icon: "library_books", color: "#8b5cf6", isLink: false },
                           { onClick: () => switchTab("achievements"), label: "Achievements", sub: `${achievements?.unlocked?.length || 0} of ${achievements?.all?.length || 0} unlocked`, icon: "emoji_events", color: "#FFD700", isLink: false },
                         ].map((action: any, i) => {
@@ -827,11 +828,11 @@ function DashboardContent() {
                       ) : (
                         <div className="divide-y divide-white/[0.04]">
                           {leaderboard.slice(0, 5).map((l: any, i: number) => {
-                            const medals = ["🥇", "🥈", "🥉"]
+                            const rankColors = ["#FFD700", "#C0C0C0", "#CD7F32"]
                             const isMe = l.name?.includes(user.name.split(" ")[0])
                             return (
                               <div key={i} className={`flex items-center gap-3 px-5 py-3 transition-colors ${isMe ? "bg-[#0085FF]/[0.06]" : "hover:bg-white/[0.02]"}`}>
-                                <span className="w-6 text-sm text-center shrink-0">{medals[i] || <span className="text-white/20 font-mono text-xs">{i + 1}</span>}</span>
+                                <span className="w-6 text-[11px] font-black text-center shrink-0 font-mono" style={{ color: rankColors[i] || 'rgba(255,255,255,0.2)' }}>#{i + 1}</span>
                                 <span className={`text-sm font-medium flex-1 truncate ${isMe ? "text-[#0085FF]" : ""}`}>{l.name}</span>
                                 {isMe && <span className="text-[8px] text-[#0085FF] font-black uppercase tracking-wider shrink-0">You</span>}
                                 <span className="text-white/25 text-[11px] font-mono shrink-0">{l.referrals}</span>
@@ -872,7 +873,9 @@ function DashboardContent() {
                       <div key={en.id} className={`border transition-all ${isExpanded ? "border-[#0085FF]/25 bg-[#0085FF]/[0.02]" : "border-white/[0.06] bg-[#0d0d0d] hover:border-white/10"}`}>
                         <button onClick={() => loadPeersAndDiscussions(en.bundle?.id)} className="w-full p-5 text-left">
                           <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 flex items-center justify-center text-xl bg-white/[0.03] shrink-0">{en.bundle?.cohort?.emoji}</div>
+                            <div className="w-10 h-10 flex items-center justify-center shrink-0" style={{ background: `${en.bundle?.cohort?.accentHex || '#8b5cf6'}18`, border: `1px solid ${en.bundle?.cohort?.accentHex || '#8b5cf6'}25` }}>
+                              <span className="material-symbols-outlined text-[18px]" style={{ color: en.bundle?.cohort?.accentHex || '#8b5cf6', fontVariationSettings: "'FILL' 1" }}>school</span>
+                            </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-0.5">
                                 <span className="text-[9px] text-white/25 font-bold uppercase tracking-wider">{en.bundle?.cohort?.name}</span>
@@ -1157,7 +1160,7 @@ function DashboardContent() {
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-base">{order.bundle?.cohort?.emoji}</span>
+                            <span className="material-symbols-outlined text-[13px]" style={{ color: order.bundle?.cohort?.accentHex || 'rgba(255,255,255,0.2)', fontVariationSettings: "'FILL' 1" }}>interests</span>
                             <span className="text-[9px] text-white/25 uppercase tracking-wider">{order.bundle?.cohort?.name}</span>
                           </div>
                           <h3 className="font-headline font-bold text-base">{order.bundle?.name || order.productName || "Workshop"}</h3>
@@ -1484,7 +1487,7 @@ function DashboardContent() {
                     >
                       {isUnlocked && <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />}
                       <div className="flex items-start justify-between mb-3">
-                        <span className={`text-3xl leading-none ${isUnlocked ? "" : "opacity-20 grayscale"}`}>{ach.emoji}</span>
+                        <span className={`material-symbols-outlined text-2xl ${isUnlocked ? "text-[#FFD700]" : "text-white/15"}`} style={{ fontVariationSettings: "'FILL' 1" }}>military_tech</span>
                         <span className={`text-[9px] font-black px-2 py-0.5 border uppercase tracking-wider ${isUnlocked ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-white/[0.04] text-white/20 border-white/[0.06]"}`}>
                           {isUnlocked ? "Unlocked" : `${ach.xpReward} XP`}
                         </span>
@@ -1973,7 +1976,7 @@ function DashboardContent() {
                               <span className="text-[8px] text-white/20">Missed</span>
                             </div>
                             <span className={`ml-auto text-[9px] font-bold ${attendancePct >= 80 ? 'text-green-400' : attendancePct >= 50 ? 'text-yellow-400' : 'text-white/20'}`}>
-                              {attendancePct >= 80 ? '✓ Completion cert' : attendancePct >= 50 ? '⚡ Participation cert · need 80% for Completion' : `${80 - attendancePct}% more for Participation cert`}
+                              {attendancePct >= 80 ? 'Completion cert earned' : attendancePct >= 50 ? 'Participation cert · need 80% for Completion' : `${80 - attendancePct}% more for Participation cert`}
                             </span>
                           </div>
                         </div>
