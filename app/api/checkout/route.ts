@@ -224,15 +224,25 @@ export async function POST(req: NextRequest) {
       .update({ stepReached: 'PAYMENT', bundleId: bundleId || null })
       .eq('email', user.email)
 
-    // Auto-create Enrollment for free or fully balance-covered registrations
+    // Auto-create Enrollment for free or fully balance-covered registrations (idempotent)
     const orderAmount = order?.amount ?? amount
     if (orderAmount === 0 && bundleId) {
-      await supabase.from('Enrollment').insert({
-        id: crypto.randomUUID(),
-        userId: user.id,
-        bundleId,
-        status: 'ACTIVE',
-      })
+      const { data: existingEnrollment } = await supabase
+        .from('Enrollment')
+        .select('id')
+        .eq('userId', user.id)
+        .eq('bundleId', bundleId)
+        .maybeSingle()
+
+      if (!existingEnrollment) {
+        await supabase.from('Enrollment').insert({
+          id: crypto.randomUUID(),
+          userId: user.id,
+          bundleId,
+          status: 'ACTIVE',
+          enrolledAt: new Date().toISOString(),
+        })
+      }
     }
 
     // Send order confirmation email + achievement check (non-blocking)

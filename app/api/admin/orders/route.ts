@@ -132,45 +132,59 @@ export async function PATCH(req: NextRequest) {
         )
       }
 
-      // 4. Referral reward — credit the referrer
+      // 4. Referral reward — credit the referrer (idempotent: skip if payout already exists)
       if (order.user?.referredBy) {
-        const { data: referrer } = await supabase
-          .from('User')
-          .select('*')
-          .eq('referralCode', order.user.referredBy)
-          .single()
+        const transactionRef = `order_${orderId}`
 
-        if (referrer) {
-          const earning = DEFAULT_REFERRAL_EARNING
-          const newTotalReferrals = (referrer.totalReferrals || 0) + 1
+        // Guard: don't double-pay if somehow called twice
+        const { data: existingPayout } = await supabase
+          .from('ReferralPayout')
+          .select('id')
+          .eq('transactionRef', transactionRef)
+          .maybeSingle()
 
-          // Update referrer's stats
-          await supabase
+        if (!existingPayout) {
+          const { data: referrer } = await supabase
             .from('User')
-            .update({
-              totalReferrals: newTotalReferrals,
+            .select('id, name, email, totalReferrals')
+            .eq('referralCode', order.user.referredBy)
+            .maybeSingle()
+
+          if (referrer) {
+            const earning = DEFAULT_REFERRAL_EARNING
+            const newTotalReferrals = (referrer.totalReferrals || 0) + 1
+
+            await supabase
+              .from('User')
+              .update({ totalReferrals: newTotalReferrals })
+              .eq('id', referrer.id)
+
+            await supabase.from('ReferralPayout').insert({
+              id: crypto.randomUUID(),
+              userId: referrer.id,
+              amountPaid: earning,
+              transactionRef,
+              paidAt: new Date().toISOString(),
             })
-            .eq('id', referrer.id)
 
-          // Record the payout
-          await supabase.from('ReferralPayout').insert({
-            id: crypto.randomUUID(),
-            userId: referrer.id,
-            amountPaid: earning,
-            transactionRef: `order_${orderId}`,
-          })
+            // Fetch actual total lifetime earnings for the email
+            const { data: allPayouts } = await supabase
+              .from('ReferralPayout')
+              .select('amountPaid')
+              .eq('userId', referrer.id)
+            const lifetimeEarnings = (allPayouts || []).reduce((s: number, p: any) => s + (p.amountPaid || 0), 0) + earning
 
-          // Email the referrer about their earning
-          try {
-            await sendReferralEarningEmail(
-              referrer.email,
-              referrer.name,
-              order.user.name,
-              order.bundle?.name || order.bundleId,
-              earning,
-              earning * newTotalReferrals
-            )
-          } catch { /* non-blocking */ }
+            try {
+              await sendReferralEarningEmail(
+                referrer.email,
+                referrer.name,
+                order.user.name,
+                order.bundle?.name || order.bundleId,
+                earning,
+                lifetimeEarnings
+              )
+            } catch { /* non-blocking */ }
+          }
         }
       }
 

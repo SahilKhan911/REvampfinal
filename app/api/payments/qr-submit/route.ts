@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
           email,
           phone,
           passwordHash: password,
-          referralCode: `tmp_${Math.random().toString(36).substring(7)}`,
+          referralCode: `tmp_${Math.random().toString(36).substring(2, 8)}`,
           referredBy: referralCookie || null,
         })
         .select()

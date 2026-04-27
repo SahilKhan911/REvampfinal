@@ -792,7 +792,7 @@ function DashboardContent() {
                       <div className="p-3 space-y-1.5">
                         {[
                           { href: "/domains", label: "Browse Workshops", sub: "Explore all domains", icon: "explore", color: "#0085FF", isLink: true },
-                          ...(isRealCode ? [{ onClick: copyLink, label: copied ? "Copied" : "Share Referral Link", sub: "Earn ₹100–200 per referral", icon: copied ? "check_circle" : "share", color: "#FFD700", isLink: false }] : []),
+                          ...(isRealCode ? [{ onClick: copyLink, label: copied ? "Copied" : "Share Referral Link", sub: "Earn ₹200 per referral", icon: copied ? "check_circle" : "share", color: "#FFD700", isLink: false }] : []),
                           { onClick: () => switchTab("resources"), label: "Free Resources", sub: "Cheatsheets, roadmaps, templates", icon: "library_books", color: "#8b5cf6", isLink: false },
                           { onClick: () => switchTab("achievements"), label: "Achievements", sub: `${achievements?.unlocked?.length || 0} of ${achievements?.all?.length || 0} unlocked`, icon: "emoji_events", color: "#FFD700", isLink: false },
                         ].map((action: any, i) => {
@@ -1311,30 +1311,54 @@ function DashboardContent() {
                 </section>
               )}
 
-              {(redemptions || []).length > 0 && (
-                <section>
-                  <h2 className="font-headline font-bold text-xs text-white/40 uppercase tracking-widest mb-3">Withdrawal History</h2>
-                  <div className="space-y-2">
-                    {(redemptions || []).map((r: any) => (
-                      <div key={r.id} className="flex justify-between items-center bg-[#0d0d0d] border border-white/[0.06] p-4">
-                        <div>
-                          <p className="font-bold text-sm">₹{r.amount}</p>
-                          <p className="text-white/25 text-[10px] font-mono uppercase truncate max-w-[180px]">{r.upiId}</p>
+              {(() => {
+                const withdrawals = (redemptions || []).filter((r: any) => !r.upiId?.startsWith('WORKSHOP_PURCHASE:'))
+                const purchaseDeductions = (redemptions || []).filter((r: any) => r.upiId?.startsWith('WORKSHOP_PURCHASE:'))
+                return (
+                  <>
+                    {withdrawals.length > 0 && (
+                      <section>
+                        <h2 className="font-headline font-bold text-xs text-white/40 uppercase tracking-widest mb-3">Withdrawal History</h2>
+                        <div className="space-y-2">
+                          {withdrawals.map((r: any) => (
+                            <div key={r.id} className="flex justify-between items-center bg-[#0d0d0d] border border-white/[0.06] p-4">
+                              <div>
+                                <p className="font-bold text-sm">₹{r.amount}</p>
+                                <p className="text-white/25 text-[10px] font-mono uppercase truncate max-w-[180px]">{r.upiId}</p>
+                              </div>
+                              <div className="text-right flex flex-col items-end gap-1">
+                                <span className={`text-[9px] font-black px-2 py-0.5 border uppercase tracking-wider ${
+                                  r.status === 'PAID' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                                  r.status === 'REJECTED' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                                  r.status === 'INITIATED' ? 'bg-[#FFD700]/10 text-[#FFD700] border-[#FFD700]/20' :
+                                  'bg-[#0085FF]/10 text-[#0085FF] border-[#0085FF]/20'
+                                }`}>{r.status}</span>
+                                <p className="text-white/20 text-[9px] font-mono">{new Date(r.createdAt).toLocaleDateString("en-IN")}</p>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                        <div className="text-right flex flex-col items-end gap-1">
-                          <span className={`text-[9px] font-black px-2 py-0.5 border uppercase tracking-wider ${
-                            r.status === 'PAID' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                            r.status === 'REJECTED' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                            r.status === 'INITIATED' ? 'bg-[#FFD700]/10 text-[#FFD700] border-[#FFD700]/20' :
-                            'bg-[#0085FF]/10 text-[#0085FF] border-[#0085FF]/20'
-                          }`}>{r.status}</span>
-                          <p className="text-white/20 text-[9px] font-mono">{new Date(r.createdAt).toLocaleDateString("en-IN")}</p>
+                      </section>
+                    )}
+                    {purchaseDeductions.length > 0 && (
+                      <section>
+                        <h2 className="font-headline font-bold text-xs text-white/40 uppercase tracking-widest mb-3">Applied to Purchases</h2>
+                        <div className="space-y-2">
+                          {purchaseDeductions.map((r: any) => (
+                            <div key={r.id} className="flex justify-between items-center bg-[#0d0d0d] border border-white/[0.06] p-4">
+                              <div>
+                                <p className="font-bold text-sm">−₹{r.amount}</p>
+                                <p className="text-white/25 text-[10px]">Balance used for workshop purchase</p>
+                              </div>
+                              <p className="text-white/20 text-[9px] font-mono">{new Date(r.createdAt).toLocaleDateString("en-IN")}</p>
+                            </div>
+                          ))}
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
+                      </section>
+                    )}
+                  </>
+                )
+              })()}
             </div>
           )}
 
