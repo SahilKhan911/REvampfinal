@@ -19,7 +19,7 @@ export default function CommunityPage() {
           className="absolute inset-0 w-full h-full object-cover"
           style={{ filter: 'brightness(0.35) saturate(1.2)' }}
         >
-          <source src="/community-hero.mov" type="video/mp4" />
+          <source src="https://res.cloudinary.com/db9dbknyl/video/upload/q_auto/f_auto/v1777270625/community-hero_yh52sw.mov" type="video/mp4" />
         </video>
 
         {/* Gradient overlays */}
