@@ -1,11 +1,31 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+let supabaseInstance: SupabaseClient | null = null;
+let mockClientInstance: SupabaseClient | null = null;
 
-// For server-side: use service_role key to bypass RLS
-// For client-side: use anon key (doesn't have access to service_role)
-const supabaseKey = typeof window === 'undefined'
-  ? (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
-  : process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+export const supabase = new Proxy({} as SupabaseClient, {
+  get(target, prop) {
+    if (!supabaseInstance) {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseKey = typeof window === 'undefined'
+        ? (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+        : process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-export const supabase = createClient(supabaseUrl, supabaseKey)
+      if (!supabaseUrl || !supabaseKey) {
+        // Return a mock instance during build
+        if (process.env.npm_lifecycle_event === 'build' || process.env.NEXT_PHASE) {
+          if (!mockClientInstance) {
+            mockClientInstance = createClient('https://placeholder.supabase.co', 'placeholder');
+          }
+          return (mockClientInstance as any)[prop];
+        }
+
+        throw new Error(`Missing Supabase environment variables! URL: ${!!supabaseUrl}, Key: ${!!supabaseKey}`)
+      }
+
+      supabaseInstance = createClient(supabaseUrl, supabaseKey)
+    }
+
+    return (supabaseInstance as any)[prop]
+  }
+})
